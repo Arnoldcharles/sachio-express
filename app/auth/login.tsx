@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
 import Button from '../../components/Button';
-import { signInEmail, getUserProfile, sendPasswordReset } from '../../lib/firebase';
+import { signInEmail, getUserProfile, sendPasswordReset, signOut } from '../../lib/firebase';
 import { signInWithCredential, GoogleAuthProvider, PhoneAuthProvider } from 'firebase/auth';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
@@ -54,6 +54,21 @@ export default function LoginScreen() {
     return n;
   };
 
+  const enforceBlockIfNeeded = async (uid: string) => {
+    try {
+      const profile = await getUserProfile(uid);
+      if (profile?.blocked) {
+        await signOut();
+        Alert.alert('Account blocked', 'Your account has been blocked by an administrator. Please contact support.');
+        router.replace('/auth/login');
+        return true;
+      }
+    } catch (err) {
+      // ignore profile fetch errors to avoid blocking login
+    }
+    return false;
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -64,8 +79,8 @@ export default function LoginScreen() {
     try {
       const user = await signInEmail(email.trim(), password);
       await AsyncStorage.setItem('userToken', user.uid);
-      const profile = await getUserProfile(user.uid);
-      console.log('profile', profile);
+      const blocked = await enforceBlockIfNeeded(user.uid);
+      if (blocked) return;
       router.replace('/(tabs)/home');
     } catch (error: any) {
       console.error(error);
@@ -125,6 +140,8 @@ export default function LoginScreen() {
       const credential = PhoneAuthProvider.credential(verificationId, otp);
       const result = await signInWithCredential(auth, credential);
       await AsyncStorage.setItem('userToken', result.user.uid);
+      const blocked = await enforceBlockIfNeeded(result.user.uid);
+      if (blocked) return;
       router.replace('/(tabs)/home');
     } catch (err: any) {
       Alert.alert('Verification failed', err?.message || 'Could not verify code. Try again.');
@@ -169,6 +186,8 @@ export default function LoginScreen() {
         const credential = GoogleAuthProvider.credential(idToken);
         const userCred = await signInWithCredential(auth, credential);
         await AsyncStorage.setItem('userToken', userCred.user.uid);
+        const blocked = await enforceBlockIfNeeded(userCred.user.uid);
+        if (blocked) return;
         router.replace('/(tabs)/home');
       } else {
         Alert.alert('Google sign-in cancelled');
