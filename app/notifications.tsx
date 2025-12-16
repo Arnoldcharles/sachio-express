@@ -1,5 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SectionList,
+  ActivityIndicator,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -11,14 +19,46 @@ type OrderNote = {
   productTitle?: string;
   status?: string;
   createdAt?: { seconds: number; nanoseconds: number };
+  items?: { imageUrl?: string; title?: string }[];
 };
+
+type Section = { title: string; data: OrderNote[] };
+
+const statusColors: Record<string, { color: string }> = {
+  cancelled_by_admin: { color: '#B91C1C' },
+  cancelled: { color: '#B91C1C' },
+  failed: { color: '#B91C1C' },
+  delivered: { color: '#16A34A' },
+  completed: { color: '#16A34A' },
+  paid: { color: '#16A34A' },
+  success: { color: '#16A34A' },
+  processing: { color: '#0F172A' },
+  dispatched: { color: '#0F172A' },
+  in_transit: { color: '#0F172A' },
+  returning: { color: '#0F172A' },
+};
+
+function formatHeader(date: Date) {
+  return date.toLocaleDateString(undefined, { weekday: 'long', day: '2-digit', month: 'long' });
+}
+
+function timeAgo(date?: Date) {
+  if (!date) return '';
+  const diff = Date.now() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins} min${mins > 1 ? 's' : ''} ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr${hrs > 1 ? 's' : ''} ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
 
 export default function NotificationsPage() {
   const router = useRouter();
   const [notes, setNotes] = useState<OrderNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (!auth || typeof auth.onAuthStateChanged !== 'function') return;
@@ -44,38 +84,51 @@ export default function NotificationsPage() {
         snap.forEach((docSnap) => {
           list.push({ id: docSnap.id, ...(docSnap.data() as any) });
         });
-        // Show most recent 50 without deleting orders
         setNotes(list.slice(0, 50));
         setLoading(false);
       },
-      () => {
-        setLoading(false);
-      },
+      () => setLoading(false),
     );
     return () => unsub();
   }, [currentUser]);
 
+  const sections: Section[] = useMemo(() => {
+    const groups: Record<string, OrderNote[]> = {};
+    notes.forEach((n) => {
+      const date = n.createdAt?.seconds ? new Date(n.createdAt.seconds * 1000) : new Date();
+      const key = formatHeader(date);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(n);
+    });
+    return Object.keys(groups).map((k) => ({ title: k, data: groups[k] }));
+  }, [notes]);
+
   const renderItem = ({ item }: { item: OrderNote }) => {
-    const dateText = item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() : '';
+    const dateObj = item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000) : undefined;
+    const ago = timeAgo(dateObj);
+    const statusKey = (item.status || '').toLowerCase();
+    const statusStyle = statusColors[statusKey] || { color: '#0F172A' };
+    const thumb = item.items && item.items[0]?.imageUrl;
+    const title = item.productTitle || item.items?.[0]?.title || 'Order update';
+
     return (
       <View style={styles.card}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={styles.iconWrap}>
-            <FontAwesome5 name="bell" size={14} color="#0B6E6B" />
+        <View style={styles.row}>
+          <View style={styles.thumbWrap}>
+            {thumb ? (
+              <Image source={{ uri: thumb }} style={styles.thumb} resizeMode="cover" />
+            ) : (
+              <FontAwesome5 name="box" size={18} color="#94a3b8" />
+            )}
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{item.productTitle || 'Order update'}</Text>
-            <Text style={styles.meta}>{item.status ? `Status: ${item.status}` : 'Status updated'}</Text>
-            {dateText ? <Text style={styles.date}>{dateText}</Text> : null}
+          <View style={{ flex: 1, gap: 4 }}>
+            {item.status ? <Text style={[styles.status, statusStyle]}>{item.status.replace(/_/g, ' ')}</Text> : null}
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.meta}>2 items</Text>
+            <Text style={styles.time}>{ago}</Text>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push('/(tabs)/orders')}
-            style={{ padding: 6, marginRight: 6 }}
-          >
-            <FontAwesome5 name="chevron-right" size={14} color="#0B6E6B" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setPendingDelete(item.id)} style={{ padding: 6 }}>
-            <FontAwesome5 name="trash" size={14} color="#EF4444" />
+          <TouchableOpacity style={styles.detailBtn} onPress={() => router.push('/(tabs)/orders')}>
+            <Text style={styles.detailText}>View Details</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -110,46 +163,18 @@ export default function NotificationsPage() {
             <Text style={styles.empty}>No updates yet.</Text>
           </View>
         ) : (
-          <FlatList
-            data={notes}
+          <SectionList
+            sections={sections}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
-            contentContainerStyle={{ padding: 16 }}
+            renderSectionHeader={({ section }) => (
+              <Text style={styles.sectionHeader}>{section.title}</Text>
+            )}
+            contentContainerStyle={{ padding: 16, gap: 8 }}
+            stickySectionHeadersEnabled={false}
           />
         )}
       </View>
-
-      <Modal
-        visible={!!pendingDelete}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPendingDelete(null)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Delete notification</Text>
-            <Text style={styles.modalText}>
-              This only hides the notification here. Your order stays intact.
-            </Text>
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.outlineBtn} onPress={() => setPendingDelete(null)}>
-                <Text style={styles.outlineBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.loginBtn, { marginTop: 0 }]}
-                onPress={async () => {
-                  if (!pendingDelete) return;
-                  // Hide locally without deleting the underlying order
-                  setNotes((prev) => prev.filter((n) => n.id !== pendingDelete));
-                  setPendingDelete(null);
-                }}
-              >
-                <Text style={styles.loginBtnText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -169,30 +194,52 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAFBFB' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   empty: { color: '#475569', fontWeight: '600' },
+  sectionHeader: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+    marginTop: 6,
+    marginBottom: 4,
+  },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    marginBottom: 10,
+    marginBottom: 8,
     shadowColor: '#0B6E6B',
     shadowOpacity: 0.03,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 6,
     elevation: 1,
   },
-  iconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#E6F4F3',
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  thumbWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+    backgroundColor: '#F3F7F7',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  thumb: { width: '100%', height: '100%' },
+  status: { fontSize: 13, fontWeight: '800', textTransform: 'capitalize' },
   title: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  meta: { fontSize: 12, color: '#475569', marginTop: 2 },
-  date: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
+  meta: { fontSize: 12, color: '#475569' },
+  time: { fontSize: 11, color: '#94a3b8' },
+  detailBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#F8FAFC',
+  },
+  detailText: { fontSize: 12, fontWeight: '700', color: '#0B6E6B' },
   loginBtn: {
     marginTop: 8,
     paddingHorizontal: 16,

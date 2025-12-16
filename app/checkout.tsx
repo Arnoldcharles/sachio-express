@@ -14,8 +14,8 @@ import { Animated, Easing } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Checkout() {
-  const FLW_PUBLIC_KEY = process.env.EXPO_PUBLIC_FLW_PUBLIC_KEY || 'FLWPUBK_TEST-b4b6028b1cd2963606e7fd405623b8f6-X';
-  const FLW_SECRET_KEY = process.env.EXPO_PUBLIC_FLW_SECRET_KEY || 'FLWSECK_TEST-4e40dea47380c21b7a9bcdff17b79aba-X';
+  const FLW_PUBLIC_KEY = process.env.EXPO_PUBLIC_FLW_PUBLIC_KEY ?? 'FLWPUBK_TEST-b4b6028b1cd2963606e7fd405623b8f6-X';
+  const FLW_SECRET_KEY = process.env.EXPO_PUBLIC_FLW_SECRET_KEY ?? 'FLWSECK_TEST-4e40dea47380c21b7a9bcdff17b79aba-X';
   const { id, type } = useLocalSearchParams();
   const router = useRouter();
   const [confirmed, setConfirmed] = useState(false);

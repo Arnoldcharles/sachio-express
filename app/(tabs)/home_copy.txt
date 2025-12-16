@@ -37,7 +37,6 @@ export default function HomeScreen() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [showAnnouncement, setShowAnnouncement] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const rentish = (val?: string | null) => !!val && val.toLowerCase().includes('rent');
 
   useEffect(() => {
     loadData();
@@ -129,7 +128,6 @@ export default function HomeScreen() {
   const renderCard = ({ item }: { item: Product }) => {
     const image = (item.images && item.images[0]) || item.imageUrl;
     const outOfStock = item.inStock === false;
-    const hidePrice = rentish(selectedCategory) || rentish(item.category) || (item.categories || []).some(rentish);
     return (
       <TouchableOpacity
         style={styles.gridCard}
@@ -190,7 +188,7 @@ export default function HomeScreen() {
           </View>
         </View>
         <Text style={styles.gridTitle} numberOfLines={2}>{item.title}</Text>
-        {!hidePrice ? <Text style={styles.gridPrice}>NGN {item.price || '-'} </Text> : null}
+        <Text style={styles.gridPrice}>NGN {item.price || '—'}</Text>
         {outOfStock ? (
           <Text style={styles.stockBadge}>Out of stock</Text>
         ) : null}
@@ -542,3 +540,4 @@ const styles = StyleSheet.create({
   },
   closeBtnText: { fontSize: 14, fontWeight: '800', color: '#475569' },
 });
+

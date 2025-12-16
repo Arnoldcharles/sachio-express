@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -7,6 +7,7 @@ import { auth, db } from '../../lib/firebase';
 import { collection, orderBy, query, onSnapshot, where, doc, getDoc } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type OrderItem = {
   id: string;
@@ -16,6 +17,7 @@ type OrderItem = {
   price?: number | string;
   paymentMethod?: string;
   type?: string;
+  amount?: number | string;
 };
 
 // Inline Header
@@ -40,6 +42,7 @@ export default function OrdersTab() {
   const [refreshing, setRefreshing] = useState(false);
   // Track previous statuses to optionally inform users in-app (no push in Expo Go)
   const lastStatuses = useRef<Record<string, string>>({});
+  const cacheKey = (uid: string) => `orders_cache_${uid}`;
 
   useEffect(() => {
     if (!auth || typeof auth.onAuthStateChanged !== 'function') return;
@@ -48,6 +51,27 @@ export default function OrdersTab() {
     });
     return () => unsubAuth();
   }, []);
+
+  // Load cached orders immediately for a smoother returning experience
+  useEffect(() => {
+    const loadCache = async () => {
+      if (!currentUser) {
+        setOrders([]);
+        return;
+      }
+      try {
+        const cached = await AsyncStorage.getItem(cacheKey(currentUser.uid));
+        if (cached) {
+          const parsed: OrderItem[] = JSON.parse(cached);
+          setOrders(parsed);
+          setLoading(false);
+        }
+      } catch {
+        // ignore cache errors
+      }
+    };
+    loadCache();
+  }, [currentUser]);
 
   useEffect(() => {
     // Live updates from Firestore for order status changes
@@ -75,6 +99,8 @@ export default function OrdersTab() {
           if (o.status) next[o.id] = o.status;
         });
         lastStatuses.current = next;
+        // Persist latest orders for quick access next session
+        AsyncStorage.setItem(cacheKey(currentUser.uid), JSON.stringify(list)).catch(() => {});
         setLoading(false);
         setRefreshing(false);
       },
@@ -111,14 +137,39 @@ export default function OrdersTab() {
 
   const renderOrderCard = ({ item }: { item: OrderItem }) => {
     const dateText = item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() : '';
+    const toNumber = (val: any) => {
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') {
+        // Strip currency formatting, commas, and spaces before parsing
+        const cleaned = val.replace(/[₦,]/g, '').trim();
+        const num = parseFloat(cleaned);
+        return Number.isNaN(num) ? null : num;
+      }
+      return null;
+    };
+    const numAmount = toNumber(item.amount);
+    const numPrice = toNumber(item.price);
     const total =
-      typeof item.price === 'number'
-        ? `NGN ${item.price}`
+      numAmount != null
+        ? `NGN ${numAmount.toLocaleString()}`
+        : numPrice != null
+        ? `NGN ${numPrice.toLocaleString()}`
         : item.price
         ? `NGN ${item.price}`
         : 'NGN -';
+    const statusNorm = (item.status || '').toLowerCase();
+    const waitingPrice = numAmount == null && numPrice == null;
+    const handlePress = () => {
+      const paid = statusNorm.includes('paid');
+      // Paid orders: open in-app detail screen; otherwise go to payment/order flow
+      if (paid) {
+        router.push(`/(tabs)/orders/${item.id}` as any);
+      } else {
+        router.push(`/order?id=${item.id}`);
+      }
+    };
     return (
-      <TouchableOpacity style={styles.orderCard} onPress={() => router.push(`/(tabs)/orders/${item.id}` as any)}>
+      <TouchableOpacity style={styles.orderCard} onPress={handlePress}>
         <View style={styles.orderHeader}>
           <View>
             <Text style={styles.orderNumber}>Order #{item.id.slice(0, 6)}</Text>

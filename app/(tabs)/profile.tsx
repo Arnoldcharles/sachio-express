@@ -24,13 +24,6 @@ function CustomButton({ title, onPress, style }: { title: string; onPress: () =>
 }
 
 export default function ProfileTab() {
-    // Allowed admin user
-    const allowedUser = {
-      email: 'arnoldcharles028@gmail.com',
-      name: 'Arnold Charles',
-      phone: '09023311459',
-      uid: 'LT2b0m9GGPQMA4OGE8NNJtqM8iZ2',
-    };
   const router = useRouter();
   const { show } = useToast();
   const [loading, setLoading] = useState(true);
@@ -337,14 +330,6 @@ export default function ProfileTab() {
 
         <View style={styles.section}>
           <CustomButton title="Logout" onPress={handleLogout} style={styles.logoutButton} />
-          {/* Show Admin Panel button only for allowed user */}
-          {auth.currentUser && auth.currentUser.email === allowedUser.email && auth.currentUser.uid === allowedUser.uid && (
-            <CustomButton
-              title="Admin Panel"
-              onPress={() => router.push('/(tabs)/admin')}
-              style={{ marginTop: 12, backgroundColor: '#0B6E6B' }}
-            />
-          )}
         </View>
 
         <View style={styles.footerSection}>

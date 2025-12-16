@@ -67,8 +67,6 @@ export default function TabLayout() {
       {/* Hide detail screens from the tab bar */}
       <Tabs.Screen name="orders/[id]" options={{ href: null }} />
       <Tabs.Screen name="track/[id]" options={{ href: null }} />
-      {/* Hide admin tab entry entirely */}
-      <Tabs.Screen name="admin" options={{ href: null }} />
       <Tabs.Screen
         name="profile"
         options={{
