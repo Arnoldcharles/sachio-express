@@ -24,9 +24,7 @@ type OrderItem = {
 function Header({ title }: any) {
   return (
     <View style={styles.header}>
-      <TouchableOpacity>
-        <FontAwesome5 name="bars" size={20} color="#0B6E6B" />
-      </TouchableOpacity>
+      <View style={{ width: 20 }} />
       <Text style={styles.headerTitle}>{title}</Text>
       <View style={{ width: 20 }} />
     </View>

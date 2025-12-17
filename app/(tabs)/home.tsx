@@ -47,7 +47,10 @@ export default function HomeScreen() {
     applyFilter(selectedCategory, search);
   }, [products, selectedCategory, search]);
 
-  const featured = useMemo(() => filtered.slice(0, 6), [filtered]);
+  const featured = useMemo(() => {
+    if (selectedCategory === 'All' && !search.trim()) return filtered;
+    return filtered.slice(0, 6);
+  }, [filtered, selectedCategory, search]);
 
   const loadData = async () => {
     try {
@@ -104,7 +107,19 @@ export default function HomeScreen() {
   }, [userId]);
 
   const applyFilter = (category: string, query: string) => {
-    let list = [...products];
+    const sortByDateDesc = (a: Product, b: Product) => {
+      const parseDate = (val: any) => {
+        if (val?.toDate) return val.toDate();
+        if (val instanceof Date) return val;
+        const parsed = val ? new Date(val) : null;
+        return parsed instanceof Date && !isNaN(parsed.getTime()) ? parsed : null;
+      };
+      const da = parseDate((a as any)?.createdAt) ?? new Date(0);
+      const db = parseDate((b as any)?.createdAt) ?? new Date(0);
+      return db.getTime() - da.getTime();
+    };
+
+    let list = [...products].sort(sortByDateDesc);
     const q = query.trim().toLowerCase();
     if (category !== 'All') {
       list = list.filter((p) =>
@@ -130,6 +145,13 @@ export default function HomeScreen() {
     const image = (item.images && item.images[0]) || item.imageUrl;
     const outOfStock = item.inStock === false;
     const hidePrice = rentish(selectedCategory) || rentish(item.category) || (item.categories || []).some(rentish);
+    const created =
+      (item as any)?.createdAt?.toDate?.() ??
+      ((item as any)?.createdAt instanceof Date ? (item as any)?.createdAt : new Date((item as any)?.createdAt));
+    const isNew =
+      created instanceof Date &&
+      !isNaN(created.getTime()) &&
+      Date.now() - created.getTime() <= 5 * 24 * 60 * 60 * 1000;
     return (
       <TouchableOpacity
         style={styles.gridCard}
@@ -145,9 +167,11 @@ export default function HomeScreen() {
             </View>
           )}
           <View style={styles.badgeRow}>
-            <View style={styles.newBadge}>
-              <Text style={styles.newBadgeText}>NEW</Text>
-            </View>
+            {isNew ? (
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>NEW</Text>
+              </View>
+            ) : <View style={{ width: 42 }} />}
             <View style={styles.ratingPill}>
               <FontAwesome5 name="star" size={10} color="#F6B22F" />
               <Text style={styles.ratingText}>4.8</Text>

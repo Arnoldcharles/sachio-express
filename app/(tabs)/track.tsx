@@ -29,9 +29,7 @@ const statusMap: Record<string, { label: string; color: string; icon: any }> = {
 function Header({ title, onPressNotifications, badgeCount }: any) {
   return (
     <View style={styles.header}>
-      <TouchableOpacity>
-        <FontAwesome5 name="bars" size={20} color="#0B6E6B" />
-      </TouchableOpacity>
+      <View style={{ width: 20 }} />
       <Text style={styles.headerTitle}>{title}</Text>
       <TouchableOpacity style={{ position: 'relative' }} onPress={onPressNotifications}>
         <FontAwesome5 name="bell" size={18} color="#0B6E6B" />
