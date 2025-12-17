@@ -9,6 +9,7 @@ import { signInEmail, getUserProfile, sendPasswordReset, signOut } from '../../l
 import { signInWithCredential, GoogleAuthProvider, PhoneAuthProvider } from 'firebase/auth';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
 import { auth, firebaseConfig } from '../../lib/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
 
@@ -24,10 +25,24 @@ try {
 export default function LoginScreen() {
   WebBrowser.maybeCompleteAuthSession();
   const router = useRouter();
-  const googleClientId =
-    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
-    '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com';
-  const googleRedirectUri = AuthSession.makeRedirectUri({ useProxy: true });
+  const defaultGoogleClientId =
+    '893149086467-72mm49s9guhltn9er7l649icbn12h968.apps.googleusercontent.com';
+  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || defaultGoogleClientId;
+  const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || defaultGoogleClientId;
+  const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || defaultGoogleClientId;
+  const redirectUri = AuthSession.makeRedirectUri({
+    useProxy: true,
+    projectNameForProxy: '@jamesarnold/sachio-express',
+  });
+  const [googleRequest, googleResponse, promptGoogle] = Google.useAuthRequest({
+    expoClientId: googleClientId,
+    webClientId: googleClientId,
+    androidClientId: googleAndroidClientId,
+    iosClientId: googleIosClientId,
+    responseType: 'id_token',
+    usePKCE: true,
+    redirectUri,
+  });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -151,39 +166,14 @@ export default function LoginScreen() {
   const handleGoogle = async () => {
     setLoadingGoogle(true);
     try {
-      const nonce = Math.random().toString(36).slice(2);
-      const authUrl =
-        'https://accounts.google.com/o/oauth2/v2/auth' +
-        '?response_type=id_token' +
-        '&scope=openid%20profile%20email' +
-        '&prompt=select_account' +
-        `&client_id=${googleClientId}` +
-        `&redirect_uri=${encodeURIComponent(googleRedirectUri)}` +
-        `&nonce=${nonce}`;
-
-      let idToken: string | null = null;
-
-      if (typeof (AuthSession as any).startAsync === 'function') {
-        const result = await (AuthSession as any).startAsync({
-          authUrl,
-          returnUrl: googleRedirectUri,
-        });
-        if (result?.type === 'success' && result.params?.id_token) {
-          idToken = result.params.id_token as string;
-        }
-      } else {
-        // Fallback for Expo Go where startAsync may be missing
-        const res = await WebBrowser.openAuthSessionAsync(authUrl, googleRedirectUri);
-        if (res.type === 'success' && res.url) {
-          const match = res.url.match(/id_token=([^&]+)/);
-          if (match?.[1]) {
-            idToken = decodeURIComponent(match[1]);
-          }
-        }
-      }
-
-      if (idToken) {
-        const credential = GoogleAuthProvider.credential(idToken);
+      const result = await promptGoogle({
+        useProxy: true,
+        projectNameForProxy: '@jamesarnold/sachio-express',
+        showInRecents: true,
+        redirectUri,
+      });
+      if (result?.type === 'success' && result.authentication?.idToken) {
+        const credential = GoogleAuthProvider.credential(result.authentication.idToken);
         const userCred = await signInWithCredential(auth, credential);
         await AsyncStorage.setItem('userToken', userCred.user.uid);
         const blocked = await enforceBlockIfNeeded(userCred.user.uid);
@@ -194,7 +184,6 @@ export default function LoginScreen() {
       }
     } catch (e: any) {
       Alert.alert('Google sign-in failed', e?.message || 'Try again');
-      setLoadingGoogle(false);
     } finally {
       setLoadingGoogle(false);
     }
