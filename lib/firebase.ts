@@ -1,5 +1,13 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { initializeAuth, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut, sendEmailVerification, sendPasswordResetEmail, User } from 'firebase/auth';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  User,
+} from 'firebase/auth';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -15,32 +23,29 @@ const firebaseConfig = {
   measurementId: "G-WSZ8JN7WNZ",
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+const app = getApps()[0] ?? initializeApp(firebaseConfig);
 
+// Try to enable React Native persistence when the optional RN auth entrypoint exists.
+const rnAuthModuleId = 'firebase/auth/react-native';
+type RNAuthModule = {
+  initializeAuth: typeof import('firebase/auth').initializeAuth;
+  getReactNativePersistence: (persistence: unknown) => any;
+};
+
+let auth = getAuth(app);
 try {
-  // Try to enable React Native persistence for auth. Use a dynamic require to avoid TypeScript issues
-  // if the platform-specific module isn't available in the installed firebase typings.
-  // This will enable persistence via AsyncStorage when supported.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const rnAuth: any = require('firebase/auth/react-native');
-  if (rnAuth && typeof rnAuth.getReactNativePersistence === 'function') {
-    initializeAuth(app, { persistence: rnAuth.getReactNativePersistence(ReactNativeAsyncStorage) });
-  } else {
-    // Fallback: try a plain initializeAuth without RN persistence
-    initializeAuth(app);
+  const rnAuth = require(rnAuthModuleId) as RNAuthModule;
+  if (rnAuth?.initializeAuth && rnAuth?.getReactNativePersistence) {
+    auth = rnAuth.initializeAuth(app, {
+      persistence: rnAuth.getReactNativePersistence(ReactNativeAsyncStorage),
+    });
   }
-} catch (e) {
-  // If require fails (module not found) or initializeAuth throws, fall back to plain initializeAuth
-  try {
-    initializeAuth(app);
-  } catch (err) {
-    // ignore
-  }
+} catch {
+  // If the RN entrypoint is not installed or fails to load, fall back to in-memory auth.
+  auth = getAuth(app);
 }
-
-const auth = getAuth();
-const db = getFirestore();
-const storage = getStorage();
+const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Auth helpers
 export async function signInEmail(email: string, password: string) {
