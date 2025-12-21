@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "sachio-mobile-toilets",
+  "private_key_id": "ac767dcdea096123db4a6dc87195035671223c19",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCRM9fFbzCfGjiJ\nu7Jo/TqxsnCnkFXgai1yPpTXC1goZj5g/G2ZmAcmXCckTnBLW/+7W6EDP1zBgYtA\n29xuUm5RxPmWEUd+S5i0el7xQzK4htPR+AXBWp319800wyuZRuZdADF4NX5VbKgu\nLt4QnHpybEWH66wJaT6BjTYYiIFK4JOhdbas9JFNx7kTkrC4DEYsE0g7YRffcLkn\n5iEFsYE3GUiOPEnpaEbOdu0qQrMPWqbXMaZo25OJQl19hGIrKJ7LvzkTy6Ehnt/u\nSYOeIH3W4jqoz2vRMB3VEZHEfIJtKcRw1NjXzSx5oLBYOcYHIstdkSNXWHTAs/k5\nXcg0P/ETAgMBAAECggEAIAMGeHwdg44j1dXALR5bAM8ewAp1rF6sO0opxUk2e92i\ntf4g6aJXPTFG3d2/KxYSyMsYMd+Xwv+c5EU0kUvyD2v2PIv9r43aEjwCT31por3y\n2BEur6SbO52Qq6e1pnq3kdxXi7F7czjb0Sa7BX2CD1TodWFTUdXWlng762e43XlV\nZdqum3XZW+WgTQ7kow5x+VH1c7bw9wCOYQCHU3sB6NPxI7vpcBcu7dH0bHOgTcgM\nMlWMCBzvx1VvpmHCLnk+/50S4sgrSg4Hm09wrtxVHMc3PURlHz8/p93kC1a6utw+\nNTZVxq85/ogn/GwSxNzf+Irz/nqqHPVmjMBXaCkLXQKBgQDKcuHbvQKqrA2wFa83\nW5e/2MCwGZ0fJA3keIkF3q0Eed63urH1KMzv2bxVS+9ORtkCxOfv3/3zZnNk9fhu\nfeQktP8lypdC3DxtoKQGGBvC0NLghc8N1D6vf2oopkZhmYKGn0RgpADe23Z2gf+5\nt6GqDIcesUHEDNEw86Th/dSRNQKBgQC3nHIzS4EFpts5+qJEmzzhZpMVVXN75Cew\nnCQlOZkQecLId4eCxmzPxExq8iR/igj2mr1VupwfpfsLfbb6qZnjNDkbklyUBhb/\n/SuE3wZsUWH2YlUY2XlHBB1KbRr00Dvyw/lKQAYESXFzzx7o0EAd09ptOyg2OV+x\n3XiLWGLKJwKBgFxsC/5EEJaYC3uqup38G5ACxRzf5KIV1J3MBUn/uV8EwA+ClMGG\nSeDptxf9nZdPsryX5gbVbFsVF3Ms86iFooS7eIvpLBri7ldh8d+yW+IZcVv82mTG\n04NNGMrL9e+SpEsPJKk11gvnhvJdMMC5O32lUH5Lj+mPrGS7pjdhqQxNAoGACKYO\n3wmsbya35tg+cnrZeEiLnxKiWPCbSf9g2HwJELSbjzPKJ0fPck3tx4/WVkebOnp5\ndqNOnVMFKzpltxLsE76u/fR79eD/jllPhne25r1CnwdsuLnts4GnG41eGrAAUuQW\nRwATCHqpJGpaK1871evXuxNxRnSXZFppRi8IoDsCgYEArtJX4wkhGNGYg6ZB8WrS\nQasCreDrc6lAZRHrmW4WbeaIrzZ2bDLTaa/dPUWWX1Ii/fWIOWZ3bm+idC8RQRvI\nyKZUEs7HGt+GvOfM+0VIqpMFTxzGgVNbDrWIGlFG32WjHICCBvuCCjfVARjM3cQ8\ng6WKRvt4QQsipgQuHM7Dv1c=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@sachio-mobile-toilets.iam.gserviceaccount.com",
+  "client_id": "100870610099285084554",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40sachio-mobile-toilets.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

@@ -18,7 +18,7 @@ export default function OnboardingScreen1() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-      <Image source={require('../../assets/images/onboarding/logo.png')} style={styles.logo} />
+      <Image source={require('../../assets/images/onboarding/logo 1.png')} style={styles.logo} />
       <Text style={styles.title}>Sachio Mobile Toilets</Text>
       <Text style={styles.tagline}>Clean. Timely. Trusted.</Text>
       <Button title="Get Started" onPress={() => router.push('/onboarding/screen2')} />

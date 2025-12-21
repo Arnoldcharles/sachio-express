@@ -10,7 +10,7 @@ export default function OnboardingScreen2() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-      <Image source={require('../../assets/images/onboarding/brand.png')} style={styles.image} />
+      <Image source={require('../../assets/images/onboarding/logo.png')} style={styles.image} />
       <Text style={styles.title}>Why Sachio?</Text>
       <Text style={styles.body}>We deliver clean, reliable portable toilets for events, construction, and more. On time, every time.</Text>
       <Button title="Next" onPress={() => router.push('/onboarding/screen3')} />

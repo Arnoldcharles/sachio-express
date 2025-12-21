@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "1052577492056",
+    "firebase_url": "https://sachio-mobile-toilets-ed86d-default-rtdb.firebaseio.com",
+    "project_id": "sachio-mobile-toilets-ed86d",
+    "storage_bucket": "sachio-mobile-toilets-ed86d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052577492056:android:f85357113b32ff37a4ae2d",
+        "android_client_info": {
+          "package_name": "sachio.moblie"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEWQs0Nh0kSnY3xROuU8dgO4lkVWQ41mc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "sachio-express",
-    "slug": "sachio-express",
+    "name": "Sachio Mobile Toilets",
+    "slug": "Sachio-Mobile-Toilets",
     "scheme": "sachio",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,15 +20,15 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "googleServicesFile": "/google-services.json",
-      "package": "com.anonymous.sachioexpress"
+      "googleServicesFile": "./google-services.json",
+      "package": "sachio.moblie"
     },
     "web": {
       "output": "static",
       "favicon": "./assets/images/logo (1).png"
     },
     "plugins": [
-      "@react-native-firebase/app",
+      "./plugins/rnfirebase-app.plugin",
       "expo-router",
       [
         "expo-splash-screen",
@@ -50,7 +50,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "9b6f15fb-75d8-416d-bba5-621aa1e4bacf"
+        "projectId": "c8cc2465-22ab-42ee-a986-b0dfad85114c"
       }
     }
   }
