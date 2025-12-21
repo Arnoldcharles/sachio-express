@@ -44,13 +44,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0B6E6B',
     marginBottom: 12,
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
   body: {
     fontSize: 16,
     color: '#1E293B',
     textAlign: 'center',
     marginBottom: 32,
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
 });
+
+

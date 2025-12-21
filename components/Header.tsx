@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#0B6E6B',
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
   notificationBadge: {
     position: 'relative',
@@ -70,3 +70,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+

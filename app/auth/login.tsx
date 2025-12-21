@@ -1,6 +1,6 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, StatusBar, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text as RNText, StyleSheet, TextInput, TouchableOpacity, Alert, StatusBar, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
@@ -11,6 +11,10 @@ import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { auth } from '../../lib/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
+
+const Text = (props: React.ComponentProps<typeof RNText>) => (
+  <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
+);
 
 export default function LoginScreen() {
   WebBrowser.maybeCompleteAuthSession();
@@ -71,7 +75,7 @@ export default function LoginScreen() {
       router.replace('/(tabs)/home');
     } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', error?.message || 'Login failed. Please try again.');
+      Alert.alert('Error', 'Incorrect email or password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -203,6 +207,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
 
               <Button title={loading ? 'Logging in...' : 'Sign In'} onPress={handleLogin} disabled={loading} />
+              {/*
               <TouchableOpacity
                 style={[styles.socialBtn, loadingAuth0 && { opacity: 0.7 }]}
                 onPress={handleAuth0}
@@ -213,6 +218,7 @@ export default function LoginScreen() {
                   {loadingAuth0 ? 'Please wait...' : 'Continue with Google via Auth0'}
                 </Text>
               </TouchableOpacity>
+              */}
             </View>
           </View>
 

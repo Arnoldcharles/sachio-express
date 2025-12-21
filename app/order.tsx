@@ -1,10 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text as RNText, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db, firebaseConfig } from '../lib/firebase';
 import { WebView } from 'react-native-webview';
 import axios from 'axios';
+
+const Text = (props: React.ComponentProps<typeof RNText>) => (
+  <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
+);
 
 type OrderDoc = {
   type?: string;

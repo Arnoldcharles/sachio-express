@@ -28,7 +28,6 @@ type CartItem = {
 };
 
 const CART_KEY = "cart_items";
-const SHIPPING_FEE = 4000;
 
 export default function CartScreen() {
   const router = useRouter();
@@ -124,7 +123,6 @@ export default function CartScreen() {
       return sum + priceNum * (it.qty || 1);
     }, 0);
   }, [items]);
-  const totalWithShipping = total + (items.length ? SHIPPING_FEE : 0);
 
   const goCheckout = () => {
     if (!items.length) {
@@ -319,11 +317,6 @@ export default function CartScreen() {
             ))}
 
             <View style={styles.summaryCard}>
-              <Text style={styles.sectionTitle}>Shipping Information</Text>
-              <View style={styles.shipRow}>
-                <Text style={styles.shipText}>**** **** **** 8148</Text>
-                <FontAwesome5 name="chevron-down" size={12} color="#1f2937" />
-              </View>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>
                   Total ({items.length} item{items.length > 1 ? "s" : ""}):
@@ -333,19 +326,13 @@ export default function CartScreen() {
                 </Text>
               </View>
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Shipping Fee</Text>
-                <Text style={styles.totalValue}>
-                  ₦{SHIPPING_FEE.toLocaleString()}
-                </Text>
-              </View>
-              <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Discount</Text>
                 <Text style={styles.totalValue}>N0.00</Text>
               </View>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Sub Total</Text>
                 <Text style={styles.totalValue}>
-                  ₦{totalWithShipping.toLocaleString()}
+                  ₦{total.toLocaleString()}
                 </Text>
               </View>
             </View>
@@ -357,7 +344,7 @@ export default function CartScreen() {
                 Total ({items.length} item{items.length > 1 ? "s" : ""}):
               </Text>
               <Text style={styles.totalValue}>
-                NGN {totalWithShipping.toLocaleString()}
+                NGN {total.toLocaleString()}
               </Text>
             </View>
             {showForm && (
@@ -655,18 +642,6 @@ const styles = StyleSheet.create({
     elevation: 1,
     gap: 8,
   },
-  shipRow: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#f8fafc",
-  },
-  shipText: { color: "#0F172A", fontWeight: "700" },
   webviewContainer: {
     height: 520,
     borderWidth: 1,
@@ -716,3 +691,4 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
+

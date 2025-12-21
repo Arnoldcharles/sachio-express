@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Modal, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -9,9 +9,69 @@ import { auth, db, getUserProfile } from '../lib/firebase';
 import { getProducts } from '../lib/products';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-const states = ['Lagos', 'Abuja', 'Ogun', 'Akwa Ibom', 'Rivers', 'Enugu', 'Kano', 'Kaduna'];
-const weddingTypes = ['Wedding', 'Birthday Event', 'Corporate Event', 'Religious Event', 'Social Event', 'Other'];
+const states = [
+  'Abia',
+  'Adamawa',
+  'Akwa Ibom',
+  'Anambra',
+  'Bauchi',
+  'Bayelsa',
+  'Benue',
+  'Borno',
+  'Cross River',
+  'Delta',
+  'Ebonyi',
+  'Edo',
+  'Ekiti',
+  'Enugu',
+  'Gombe',
+  'Imo',
+  'Jigawa',
+  'Kaduna',
+  'Kano',
+  'Katsina',
+  'Kebbi',
+  'Kogi',
+  'Kwara',
+  'Lagos',
+  'Nasarawa',
+  'Niger',
+  'Ogun',
+  'Ondo',
+  'Osun',
+  'Oyo',
+  'Plateau',
+  'Rivers',
+  'Sokoto',
+  'Taraba',
+  'Yobe',
+  'Zamfara',
+  'FCT',
+];
+const eventTypes = [
+  'Wedding',
+  'Anniversary',
+  'Birthday',
+  'Cocktail Party',
+  'Holiday Party',
+  'Sporting Event',
+  'Religious Event',
+  'Corporate Event',
+  'Trade Show',
+  'Grand Opening',
+  'House Warming',
+  'Product Launch',
+  'Media Event',
+  'Awards Event',
+  'Fundraiser',
+  'Retirement',
+  'Long Term Rental',
+  'Burial Ceremony',
+];
 const guestCounts = ['0 - 100', '100 - 250', '250 - 500', '500 - 1000', '1000+'];
+const productTypes = ['VIP Restrooms', 'Porta Potties'];
+const rentalTypes = ['Construction', 'Events', 'Other'];
+const referrals = ['Google Search', 'Social Media', 'Referral', 'Website', 'Other'];
 
 function addDays(dateStr: string, days: number) {
   const d = new Date(dateStr);
@@ -36,23 +96,52 @@ export default function RentScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [productTitle, setProductTitle] = useState('');
+  const [toiletsRequired, setToiletsRequired] = useState('');
   const [duration, setDuration] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [stateVal, setStateVal] = useState('');
   const [location, setLocation] = useState('');
   const [weddingType, setWeddingType] = useState('');
-  const [customEventModal, setCustomEventModal] = useState(false);
-  const [customEventText, setCustomEventText] = useState('');
   const [guestCount, setGuestCount] = useState('');
+  const [productType, setProductType] = useState<string[]>([]);
+  const [rentalType, setRentalType] = useState('');
   const [note, setNote] = useState('');
-  const [picker, setPicker] = useState<{ type: 'state' | 'wedding' | 'guest' | null }>({ type: null });
+  const [referral, setReferral] = useState('');
+  const [picker, setPicker] = useState<{ type: 'state' | 'event' | 'guest' | 'product' | 'rental' | 'referral' | null }>({ type: null });
 
   const canSubmit = useMemo(() => {
-    return !!phone && !!duration && !!eventDate && !!stateVal && !!location;
-  }, [phone, duration, eventDate, stateVal, location]);
+    return (
+      !!name &&
+      !!email &&
+      !!phone &&
+      !!toiletsRequired &&
+      !!duration &&
+      !!eventDate &&
+      !!stateVal &&
+      !!location &&
+      !!weddingType &&
+      !!guestCount &&
+      productType.length > 0 &&
+      !!rentalType
+    );
+  }, [
+    name,
+    email,
+    phone,
+    toiletsRequired,
+    duration,
+    eventDate,
+    stateVal,
+    location,
+    weddingType,
+    guestCount,
+    productType,
+    rentalType,
+  ]);
 
   useEffect(() => {
     if (!auth.currentUser) {
@@ -77,6 +166,9 @@ export default function RentScreen() {
         }
       })
       .catch(() => {});
+    if (auth.currentUser?.email) {
+      setEmail(auth.currentUser.email);
+    }
   }, [router]);
 
   const submit = () => {
@@ -103,7 +195,9 @@ export default function RentScreen() {
         amount: null,
         userId,
         customerName: name || auth.currentUser?.email || 'Guest',
+        customerEmail: email,
         customerPhone: phone,
+        customerAddress: location,
         phone,
         duration,
         rentalStartDate: eventDate,
@@ -112,6 +206,10 @@ export default function RentScreen() {
         location,
         weddingType,
         guestCount,
+        productType,
+        rentalType,
+        toiletsRequired,
+        referral,
         note,
         createdAt: serverTimestamp(),
       };
@@ -123,34 +221,49 @@ export default function RentScreen() {
     }
   };
 
-  const renderPicker = (type: 'state' | 'wedding' | 'guest', data: string[], setter: (v: string) => void) => (
+  const renderPicker = (
+    type: 'state' | 'event' | 'guest' | 'product' | 'rental' | 'referral',
+    data: string[],
+    setter: (v: string) => void
+  ) => (
     <Modal
       visible={picker.type === type}
       transparent
       animationType="fade"
       onRequestClose={() => setPicker({ type: null })}
     >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalCard}>
-          {data.map((item) => (
-            <TouchableOpacity
-              key={item}
-              style={styles.optionRow}
-              onPress={() => {
-                if (type === 'wedding' && item === 'Other') {
-                  setPicker({ type: null });
-                  setCustomEventModal(true);
-                  return;
-                }
-                setter(item);
-                setPicker({ type: null });
-              }}
-            >
-              <Text style={styles.optionText}>{item}</Text>
+      <Pressable style={styles.modalBackdrop} onPress={() => setPicker({ type: null })}>
+        <Pressable style={styles.modalCard} onPress={() => {}}>
+          <ScrollView showsVerticalScrollIndicator>
+            {data.map((item) => {
+              const isSelected = type === 'product' && productType.includes(item);
+              return (
+                <TouchableOpacity
+                  key={item}
+                  style={[styles.optionRow, isSelected && styles.optionRowSelected]}
+                  onPress={() => {
+                    if (type === 'product') {
+                      setProductType((prev) =>
+                        prev.includes(item) ? prev.filter((val) => val !== item) : [...prev, item]
+                      );
+                      return;
+                    }
+                    setter(item);
+                    setPicker({ type: null });
+                  }}
+                >
+                  <Text style={styles.optionText}>{item}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          {type === 'product' ? (
+            <TouchableOpacity style={styles.modalDoneBtn} onPress={() => setPicker({ type: null })}>
+              <Text style={styles.modalDoneText}>Done</Text>
             </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+          ) : null}
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 
@@ -177,7 +290,18 @@ export default function RentScreen() {
         </View>
         <View style={styles.field}>
           <TextInput
-            placeholder="+234 Your mobile number"
+            placeholder="Your Email Address"
+            placeholderTextColor="#94a3b8"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={styles.input}
+          />
+        </View>
+        <View style={styles.field}>
+          <TextInput
+            placeholder="Your Phone Number"
             placeholderTextColor="#94a3b8"
             value={phone}
             onChangeText={setPhone}
@@ -187,10 +311,10 @@ export default function RentScreen() {
         </View>
         <View style={styles.field}>
           <TextInput
-            placeholder="Event Duration (in Days)"
+            placeholder="Number of Toilets Required"
             placeholderTextColor="#94a3b8"
-            value={duration}
-            onChangeText={setDuration}
+            value={toiletsRequired}
+            onChangeText={setToiletsRequired}
             keyboardType="numeric"
             style={styles.input}
           />
@@ -208,11 +332,20 @@ export default function RentScreen() {
             </View>
           </TouchableOpacity>
         </View>
-
+        <View style={styles.field}>
+          <TextInput
+            placeholder="Event Duration (In Days)"
+            placeholderTextColor="#94a3b8"
+            value={duration}
+            onChangeText={setDuration}
+            keyboardType="numeric"
+            style={styles.input}
+          />
+        </View>
         <TouchableOpacity style={styles.field} onPress={() => setPicker({ type: 'state' })}>
           <View pointerEvents="none">
             <TextInput
-              placeholder="State"
+              placeholder="Event Location (State)"
               placeholderTextColor="#94a3b8"
               value={stateVal}
               style={styles.input}
@@ -222,17 +355,17 @@ export default function RentScreen() {
         </TouchableOpacity>
         <View style={styles.field}>
           <TextInput
-            placeholder="Event Location (full address)"
+            placeholder="Event Location (Full Address)"
             placeholderTextColor="#94a3b8"
             value={location}
             onChangeText={setLocation}
             style={styles.input}
           />
         </View>
-        <TouchableOpacity style={styles.field} onPress={() => setPicker({ type: 'wedding' })}>
+        <TouchableOpacity style={styles.field} onPress={() => setPicker({ type: 'event' })}>
           <View pointerEvents="none">
             <TextInput
-              placeholder="Wedding Type"
+              placeholder="Type of Event"
               placeholderTextColor="#94a3b8"
               value={weddingType}
               style={styles.input}
@@ -243,7 +376,7 @@ export default function RentScreen() {
         <TouchableOpacity style={styles.field} onPress={() => setPicker({ type: 'guest' })}>
           <View pointerEvents="none">
             <TextInput
-              placeholder="Approximate Number of Guest"
+              placeholder="Approximate Number of Guests"
               placeholderTextColor="#94a3b8"
               value={guestCount}
               style={styles.input}
@@ -251,16 +384,49 @@ export default function RentScreen() {
             />
           </View>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.field} onPress={() => setPicker({ type: 'product' })}>
+          <View pointerEvents="none">
+            <TextInput
+              placeholder="Product Type"
+              placeholderTextColor="#94a3b8"
+              value={productType.join(', ')}
+              style={styles.input}
+              editable={false}
+            />
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.field} onPress={() => setPicker({ type: 'rental' })}>
+          <View pointerEvents="none">
+            <TextInput
+              placeholder="Rental Type"
+              placeholderTextColor="#94a3b8"
+              value={rentalType}
+              style={styles.input}
+              editable={false}
+            />
+          </View>
+        </TouchableOpacity>
         <View style={styles.field}>
           <TextInput
-            placeholder="Additional Request (optional)"
+            placeholder="Additional Request and Comments (Optional)"
             placeholderTextColor="#94a3b8"
             value={note}
             onChangeText={setNote}
-            style={[styles.input, { height: 70 }]}
+            style={[styles.input, { height: 90 }]}
             multiline
           />
         </View>
+        <TouchableOpacity style={styles.field} onPress={() => setPicker({ type: 'referral' })}>
+          <View pointerEvents="none">
+            <TextInput
+              placeholder="How did you hear about us? (Optional)"
+              placeholderTextColor="#94a3b8"
+              value={referral}
+              style={styles.input}
+              editable={false}
+            />
+          </View>
+        </TouchableOpacity>
 
         <TouchableOpacity style={[styles.button, !canSubmit && { opacity: 0.5 }]} onPress={submit} disabled={!canSubmit}>
           <Text style={styles.buttonText}>Submit</Text>
@@ -268,47 +434,11 @@ export default function RentScreen() {
       </ScrollView>
 
       {renderPicker('state', states, setStateVal)}
-      {renderPicker('wedding', weddingTypes, setWeddingType)}
+      {renderPicker('event', eventTypes, setWeddingType)}
       {renderPicker('guest', guestCounts, setGuestCount)}
-      <Modal
-        visible={customEventModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setCustomEventModal(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { padding: 18, borderRadius: 14 }]}>
-            <Text style={styles.modalTitle}>Tell us about your event</Text>
-            <Text style={styles.modalSubtitle}>Give a short name so we can plan the right setup.</Text>
-            <TextInput
-              placeholder="e.g. Tech conference, Beach party"
-              placeholderTextColor="#94a3b8"
-              value={customEventText}
-              onChangeText={setCustomEventText}
-              style={[styles.input, { marginTop: 12, height: 48, backgroundColor: '#f8fafc' }]}
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                onPress={() => setCustomEventModal(false)}
-                style={[styles.ghostBtn]}
-              >
-                <Text style={[styles.buttonText, { color: '#0F172A' }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  const trimmed = customEventText.trim();
-                  if (!trimmed) return;
-                  setWeddingType(trimmed);
-                  setCustomEventModal(false);
-                }}
-                style={[styles.button, { paddingVertical: 12 }]}
-              >
-                <Text style={styles.buttonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {renderPicker('product', productTypes, () => {})}
+      {renderPicker('rental', rentalTypes, setRentalType)}
+      {renderPicker('referral', referrals, setReferral)}
       {showDatePicker && (
         <DateTimePicker
           value={safeDate(eventDate)}
@@ -359,21 +489,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    maxHeight: '60%',
-  },
-  modalTitle: { fontWeight: '800', color: '#0B6E6B', fontSize: 18 },
-  modalSubtitle: { color: '#475569', marginTop: 6, fontSize: 13 },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 10,
-    marginTop: 16,
-  },
-  ghostBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#e2e8f0',
+    maxHeight: '70%',
   },
   optionRow: {
     paddingVertical: 12,
@@ -382,4 +498,15 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e5e7eb',
   },
   optionText: { color: '#0F172A', fontWeight: '600' },
+  optionRowSelected: {
+    backgroundColor: '#E6F4F3',
+  },
+  modalDoneBtn: {
+    marginTop: 10,
+    backgroundColor: '#0B6E6B',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalDoneText: { color: '#fff', fontWeight: '700' },
 });

@@ -1,11 +1,15 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text as RNText, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { auth, db } from '../../../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
+
+const Text = (props: React.ComponentProps<typeof RNText>) => (
+  <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
+);
 
 type OrderDoc = {
   productTitle?: string;

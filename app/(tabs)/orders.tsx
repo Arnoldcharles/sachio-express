@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text as RNText, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,10 @@ import { collection, orderBy, query, onSnapshot, where, doc, getDoc } from 'fire
 import type { User } from 'firebase/auth';
 import { useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const Text = (props: React.ComponentProps<typeof RNText>) => (
+  <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
+);
 
 type OrderItem = {
   id: string;

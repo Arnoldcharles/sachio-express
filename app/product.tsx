@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Animated,
@@ -15,7 +15,7 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { getProducts, Product } from "../lib/products";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
@@ -33,6 +33,8 @@ export default function ProductPage() {
   const [recommended, setRecommended] = useState<Product[]>([]);
   const [cardAnim] = useState(new Animated.Value(0));
   const outOfStock = product?.inStock === false;
+  const [cartCount, setCartCount] = useState(0);
+  const [inCart, setInCart] = useState(false);
   const [lightboxVisible, setLightboxVisible] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -44,6 +46,7 @@ export default function ProductPage() {
 
   const addToCart = async () => {
     if (!product) return;
+    if (inCart) return;
     if (!auth.currentUser) {
       alert("Please log in to continue.");
       router.push("/auth/login");
@@ -65,10 +68,21 @@ export default function ProductPage() {
         });
       }
       await AsyncStorage.setItem(CART_KEY, JSON.stringify(parsed));
+      const count = parsed.reduce((sum, item) => sum + (item.qty || 1), 0);
+      setCartCount(count);
+      setInCart(true);
     } catch (e) {
       // ignore cart errors
     }
   };
+
+  const loadCartState = useCallback(async () => {
+    const raw = await AsyncStorage.getItem(CART_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any[]) : [];
+    const count = parsed.reduce((sum, item) => sum + (item.qty || 1), 0);
+    setCartCount(count);
+    setInCart(!!parsed.find((item) => item.id === product?.id));
+  }, [product?.id]);
 
   const gallery = useMemo(() => {
     const urls: string[] = [];
@@ -94,6 +108,7 @@ export default function ProductPage() {
       setLoading(false);
     }
     fetchProduct();
+    loadCartState();
     Animated.timing(cardAnim, {
       toValue: 1,
       duration: 600,
@@ -105,6 +120,12 @@ export default function ProductPage() {
       setFavorite(val === "true");
     });
   }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCartState();
+    }, [loadCartState])
+  );
 
   useEffect(() => {
     if (!product) return;
@@ -160,9 +181,16 @@ export default function ProductPage() {
             <FontAwesome5 name="arrow-left" size={16} color="#0B6E6B" />
           </TouchableOpacity>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <TouchableOpacity style={styles.circleBtn} onPress={() => router.push('/cart')}>
-              <FontAwesome5 name="shopping-cart" size={16} color="#0B6E6B" />
-            </TouchableOpacity>
+            <View style={styles.cartIconWrap}>
+              <TouchableOpacity style={styles.circleBtn} onPress={() => router.push('/cart')}>
+                <FontAwesome5 name="shopping-cart" size={16} color="#0B6E6B" />
+              </TouchableOpacity>
+              {cartCount > 0 ? (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                </View>
+              ) : null}
+            </View>
             <TouchableOpacity
               style={styles.circleBtn}
               onPress={async () => {
@@ -251,9 +279,7 @@ export default function ProductPage() {
               <Text style={styles.priceLarge}>
                 {product.price ? `NGN ${product.price}` : "Contact"}
               </Text>
-            ) : (
-              <Text style={styles.priceLarge}>Contact for booking</Text>
-            )}
+            ) : null}
           </View>
 
           {outOfStock ? (
@@ -265,14 +291,14 @@ export default function ProductPage() {
 
           {/* Description */}
           <View style={{ marginTop: 8 }}>
-            <TouchableOpacity onPress={() => setShowFullDesc((v) => !v)}>
-              <Text style={styles.moreLink}>{showFullDesc ? "Hide description" : "More Description"}</Text>
-            </TouchableOpacity>
             <Text style={styles.desc}>
               {showFullDesc || (product.description || "").length < 220
                 ? product.description
                 : `${(product.description || "").slice(0, 220)}...`}
             </Text>
+            <TouchableOpacity onPress={() => setShowFullDesc((v) => !v)}>
+              <Text style={styles.moreLink}>{showFullDesc ? "Hide description" : "More Description"}</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Quantity */}
@@ -299,10 +325,14 @@ export default function ProductPage() {
           {/* Actions */}
           <View style={styles.primaryActions}>
             <TouchableOpacity
-              style={[styles.ctaButton, styles.purchaseBtn, outOfStock && styles.buttonDisabled]}
-            disabled={outOfStock}
+              style={[
+                styles.ctaButton,
+                styles.purchaseBtn,
+                (outOfStock || inCart) && styles.buttonDisabled,
+              ]}
+            disabled={outOfStock || inCart}
             onPress={() => {
-              if (outOfStock) return;
+              if (outOfStock || inCart) return;
               if (!auth.currentUser) {
                 alert("Please log in to continue.");
                 router.push("/auth/login");
@@ -312,18 +342,20 @@ export default function ProductPage() {
               router.push('/cart');
             }}
           >
-              <Text style={styles.ctaText}>Purchase</Text>
+              <Text style={styles.ctaText}>{inCart ? "In Cart" : "Purchase"}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.ctaButton, styles.rentBtn, outOfStock && styles.buttonDisabled]}
-              disabled={outOfStock}
-              onPress={() => {
-                if (outOfStock) return;
-                router.push(`/rent?id=${product.id}`);
-              }}
-            >
-              <Text style={styles.ctaText}>Book Toilet</Text>
-            </TouchableOpacity>
+            {isRentProduct ? null : (
+              <TouchableOpacity
+                style={[styles.ctaButton, styles.rentBtn, outOfStock && styles.buttonDisabled]}
+                disabled={outOfStock}
+                onPress={() => {
+                  if (outOfStock) return;
+                  router.push(`/rent?id=${product.id}`);
+                }}
+              >
+                <Text style={styles.ctaText}>Book Toilet</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Share */}
@@ -824,6 +856,22 @@ export default function ProductPage() {
     borderWidth: 1,
     borderColor: "#D1E7E5",
   },
+  cartIconWrap: {
+    position: "relative",
+  },
+  cartBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#EF4444",
+    borderRadius: 999,
+    paddingHorizontal: 5,
+    minWidth: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cartBadgeText: { color: "#fff", fontSize: 10, fontWeight: "800" },
   heroCard: {
     marginHorizontal: 16,
     backgroundColor: "#fff",

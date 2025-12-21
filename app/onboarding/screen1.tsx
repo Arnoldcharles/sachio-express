@@ -45,12 +45,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0B6E6B',
     marginBottom: 8,
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
   tagline: {
     fontSize: 16,
     color: '#1E293B',
     marginBottom: 32,
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
 });
+
+

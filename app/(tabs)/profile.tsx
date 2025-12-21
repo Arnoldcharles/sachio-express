@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, StatusBar, Modal, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text as RNText, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, StatusBar, Modal, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { auth, getUserProfile, signOut, db } from '../../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '../../components/Toast';
+
+const Text = (props: React.ComponentProps<typeof RNText>) => (
+  <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
+);
 
 function Header({ title }: { title: string }) {
   return (

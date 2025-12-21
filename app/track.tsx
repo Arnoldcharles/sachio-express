@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text as RNText, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Track() {
@@ -12,6 +12,10 @@ export default function Track() {
     </SafeAreaView>
   );
 }
+
+const Text = (props: React.ComponentProps<typeof RNText>) => (
+  <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
+);
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: '#fff' },

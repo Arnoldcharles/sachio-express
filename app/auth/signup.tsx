@@ -229,6 +229,7 @@ export default function SignupScreen() {
                 onPress={handleSignup}
                 disabled={loading}
               />
+              {/*
               <TouchableOpacity
                 style={[styles.socialBtn, loadingGoogle && { opacity: 0.7 }]}
                 onPress={handleGoogle}
@@ -237,6 +238,7 @@ export default function SignupScreen() {
                 <FontAwesome5 name="google" size={16} color="#fff" />
                 <Text style={styles.socialBtnText}>{loadingGoogle ? 'Please wait...' : 'Sign up with Google'}</Text>
               </TouchableOpacity>
+              */}
             </View>
           </View>
 
@@ -287,13 +289,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0B6E6B',
     marginBottom: 8,
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
   subtitle: {
     fontSize: 14,
     color: '#666',
     marginBottom: 32,
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
   pillRow: {
     flexDirection: 'row',
@@ -357,7 +359,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1E293B',
     marginBottom: 8,
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
   input: {
     borderWidth: 1,
@@ -373,7 +375,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginBottom: 24,
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
   link: {
     color: '#0B6E6B',
@@ -387,13 +389,13 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     color: '#666',
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
   footerLink: {
     fontSize: 14,
     fontWeight: '600',
     color: '#0B6E6B',
-    fontFamily: 'Inter',
+    fontFamily: 'Nunito',
   },
   socialBtn: {
     marginTop: 12,
@@ -407,3 +409,5 @@ const styles = StyleSheet.create({
   },
   socialBtnText: { color: '#fff', fontWeight: '700' },
 });
+
+

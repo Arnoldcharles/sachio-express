@@ -1,22 +1,31 @@
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Text, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ToastProvider } from "../components/Toast";
+import { useFonts } from "expo-font";
 
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    Nunito: require("../assets/fonts/Nunito-Variable.ttf"),
+  });
+
+  if (fontsLoaded) {
+    Text.defaultProps = Text.defaultProps || {};
+    Text.defaultProps.style = [{ fontFamily: "Nunito" }, Text.defaultProps.style];
+    TextInput.defaultProps = TextInput.defaultProps || {};
+    TextInput.defaultProps.style = [{ fontFamily: "Nunito" }, TextInput.defaultProps.style];
+  }
 
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
         const onboardingDone = await AsyncStorage.getItem("onboardingComplete");
-        const userToken = await AsyncStorage.getItem("userToken");
-        
+        await AsyncStorage.getItem("userToken");
+
         setIsOnboardingComplete(!!onboardingDone);
-        setIsLoggedIn(!!userToken);
       } catch (e) {
         console.error(e);
       } finally {
@@ -27,7 +36,7 @@ export default function RootLayout() {
     bootstrapAsync();
   }, []);
 
-  if (isLoading) {
+  if (isLoading || (!fontsLoaded && !fontError)) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FAFBFB" }}>
         <ActivityIndicator size="large" color="#0B6E6B" />
