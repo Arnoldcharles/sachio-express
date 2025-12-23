@@ -73,6 +73,28 @@ export async function signUpEmail(email: string, password: string, profile: { na
   return cred.user;
 }
 
+export async function ensureUserProfile(
+  user: User,
+  profile: { name?: string | null; phone?: string | null } = {}
+) {
+  const userRef = doc(db, 'users', user.uid);
+  const snap = await getDoc(userRef);
+  if (snap.exists()) {
+    return snap.data();
+  }
+  const name = profile.name ?? user.displayName ?? null;
+  const phone = profile.phone ?? user.phoneNumber ?? null;
+  const payload = {
+    uid: user.uid,
+    email: user.email,
+    name,
+    phone,
+    createdAt: new Date().toISOString(),
+  };
+  await setDoc(userRef, payload);
+  return payload;
+}
+
 export async function signOut() {
   return firebaseSignOut(auth);
 }

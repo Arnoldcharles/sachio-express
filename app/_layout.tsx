@@ -13,10 +13,12 @@ export default function RootLayout() {
   });
 
   if (fontsLoaded) {
-    Text.defaultProps = Text.defaultProps || {};
-    Text.defaultProps.style = [{ fontFamily: "Nunito" }, Text.defaultProps.style];
-    TextInput.defaultProps = TextInput.defaultProps || {};
-    TextInput.defaultProps.style = [{ fontFamily: "Nunito" }, TextInput.defaultProps.style];
+    const TextAny = Text as unknown as { defaultProps?: { style?: any } };
+    TextAny.defaultProps = TextAny.defaultProps || {};
+    TextAny.defaultProps.style = [{ fontFamily: "Nunito" }, TextAny.defaultProps.style];
+    const TextInputAny = TextInput as unknown as { defaultProps?: { style?: any } };
+    TextInputAny.defaultProps = TextInputAny.defaultProps || {};
+    TextInputAny.defaultProps.style = [{ fontFamily: "Nunito" }, TextInputAny.defaultProps.style];
   }
 
   useEffect(() => {

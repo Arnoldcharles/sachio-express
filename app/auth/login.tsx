@@ -5,8 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
 import Button from '../../components/Button';
-import { signInEmail, getUserProfile, sendPasswordReset, signOut } from '../../lib/firebase';
-import { signInWithCustomToken } from 'firebase/auth';
+import { ensureUserProfile, signInEmail, getUserProfile, sendPasswordReset, signOut } from '../../lib/firebase';
+import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { auth } from '../../lib/firebase';
@@ -19,31 +19,17 @@ const Text = (props: React.ComponentProps<typeof RNText>) => (
 export default function LoginScreen() {
   WebBrowser.maybeCompleteAuthSession();
   const router = useRouter();
-  const auth0Domain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN || 'arnoldcharles.us.auth0.com';
-  const auth0ClientId = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID || 'iugqNGKBu3AePIIxH3azRG9pEeccR20g';
-  const auth0Audience =
-    process.env.EXPO_PUBLIC_AUTH0_AUDIENCE || 'https://arnoldcharles.us.auth0.com/api/v2/';
-  const auth0ExchangeUrl =
-    process.env.EXPO_PUBLIC_AUTH0_EXCHANGE_URL || 'http://localhost:5001/auth/auth0-exchange';
-  const redirectUri = AuthSession.makeRedirectUri({
+  const defaultGoogleClientId =
+    '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com';
+  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || defaultGoogleClientId;
+  const googleRedirectUri = AuthSession.makeRedirectUri({
     useProxy: true,
     projectNameForProxy: '@jamesarnold/sachio-express',
-  });
-  const discovery = auth0Domain ? AuthSession.useAutoDiscovery(`https://${auth0Domain}`) : null;
-  const [auth0Request, auth0Response, promptAuth0] = AuthSession.useAuthRequest(
-    {
-      clientId: auth0ClientId || '',
-      redirectUri,
-      responseType: AuthSession.ResponseType.IdToken,
-      scopes: ['openid', 'profile', 'email'],
-      extraParams: auth0Audience ? { audience: auth0Audience } : undefined,
-    },
-    discovery
-  );
+  } as any);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingAuth0, setLoadingAuth0] = useState(false);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
 
   const enforceBlockIfNeeded = async (uid: string) => {
     try {
@@ -81,49 +67,54 @@ export default function LoginScreen() {
     }
   };
 
-  const handleAuth0 = async () => {
-    if (!auth0Domain || !auth0ClientId || !auth0ExchangeUrl) {
-      Alert.alert(
-        'Auth0 not configured',
-        'Please set EXPO_PUBLIC_AUTH0_DOMAIN, EXPO_PUBLIC_AUTH0_CLIENT_ID, and EXPO_PUBLIC_AUTH0_EXCHANGE_URL.'
-      );
-      return;
-    }
-    setLoadingAuth0(true);
+  const handleGoogle = async () => {
+    setLoadingGoogle(true);
     try {
-      const result = await promptAuth0({
-        useProxy: true,
-        projectNameForProxy: '@jamesarnold/sachio-express',
-        showInRecents: true,
-        redirectUri,
-      });
-      if (result?.type === 'success' && result.params?.id_token) {
-        const idToken = result.params.id_token;
-        const exchangeResp = await fetch(auth0ExchangeUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken }),
+      const nonce = Math.random().toString(36).slice(2);
+      const authUrl =
+        'https://accounts.google.com/o/oauth2/v2/auth' +
+        '?response_type=id_token' +
+        '&scope=openid%20profile%20email' +
+        '&prompt=select_account' +
+        `&client_id=${googleClientId}` +
+        `&redirect_uri=${encodeURIComponent(googleRedirectUri)}` +
+        `&nonce=${nonce}`;
+
+      let idToken: string | null = null;
+
+      if (typeof (AuthSession as any).startAsync === 'function') {
+        const result: any = await (AuthSession as any).startAsync({
+          authUrl,
+          returnUrl: googleRedirectUri,
         });
-        if (!exchangeResp.ok) {
-          const text = await exchangeResp.text();
-          throw new Error(text || 'Token exchange failed');
+        if (result?.type === 'success' && result?.params?.id_token) {
+          idToken = result.params.id_token;
         }
-        const { firebaseCustomToken } = await exchangeResp.json();
-        if (!firebaseCustomToken) {
-          throw new Error('No firebaseCustomToken in response');
+      } else {
+        const res = await WebBrowser.openAuthSessionAsync(authUrl, googleRedirectUri);
+        if (res.type === 'success' && res.url) {
+          const match = res.url.match(/id_token=([^&]+)/);
+          if (match?.[1]) {
+            idToken = decodeURIComponent(match[1]);
+          }
         }
-        const userCred = await signInWithCustomToken(auth, firebaseCustomToken);
+      }
+
+      if (idToken) {
+        const credential = GoogleAuthProvider.credential(idToken);
+        const userCred = await signInWithCredential(auth, credential);
+        await ensureUserProfile(userCred.user);
         await AsyncStorage.setItem('userToken', userCred.user.uid);
         const blocked = await enforceBlockIfNeeded(userCred.user.uid);
         if (blocked) return;
         router.replace('/(tabs)/home');
       } else {
-        Alert.alert('Auth cancelled');
+        Alert.alert('Google sign-in cancelled');
       }
     } catch (e: any) {
-      Alert.alert('Auth0 sign-in failed', e?.message || 'Try again');
+      Alert.alert('Google sign-in failed', e?.message || 'Try again');
     } finally {
-      setLoadingAuth0(false);
+      setLoadingGoogle(false);
     }
   };
 
@@ -207,23 +198,21 @@ export default function LoginScreen() {
               </TouchableOpacity>
 
               <Button title={loading ? 'Logging in...' : 'Sign In'} onPress={handleLogin} disabled={loading} />
-              {/*
               <TouchableOpacity
-                style={[styles.socialBtn, loadingAuth0 && { opacity: 0.7 }]}
-                onPress={handleAuth0}
-                disabled={loadingAuth0}
+                style={[styles.socialBtn, loadingGoogle && { opacity: 0.7 }]}
+                onPress={handleGoogle}
+                disabled={loadingGoogle}
               >
                 <FontAwesome5 name="google" size={16} color="#fff" />
                 <Text style={styles.socialBtnText}>
-                  {loadingAuth0 ? 'Please wait...' : 'Continue with Google via Auth0'}
+                  {loadingGoogle ? 'Please wait...' : 'Continue with Google'}
                 </Text>
               </TouchableOpacity>
-              */}
             </View>
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={styles.footerText}>{"Don't have an account? "}</Text>
             <TouchableOpacity onPress={() => router.replace('/auth/signup')}>
               <Text style={styles.link}>Sign Up</Text>
             </TouchableOpacity>

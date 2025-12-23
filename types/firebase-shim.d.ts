@@ -29,6 +29,11 @@ declare module 'firebase/auth' {
   export function signOut(auth: Auth): Promise<void>;
   export function sendEmailVerification(user: User): Promise<void>;
   export function sendPasswordResetEmail(auth: Auth, email: string): Promise<void>;
+  export function signInWithCustomToken(auth: Auth, token: string): Promise<{ user: User }>;
+  export function signInWithCredential(auth: Auth, credential: any): Promise<{ user: User }>;
+  export const GoogleAuthProvider: {
+    credential: (idToken?: string | null, accessToken?: string | null) => any;
+  };
 }
 
 declare module 'firebase/firestore' {
@@ -55,6 +60,7 @@ declare module 'firebase/firestore' {
   export function onSnapshot(
     reference: any,
     callback: (snapshot: QuerySnapshot | DocumentSnapshot) => any,
+    error?: (error: any) => void,
   ): () => void;
   export function getDocs(query: Query): Promise<QuerySnapshot>;
   export function serverTimestamp(): any;

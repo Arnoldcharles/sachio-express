@@ -4,7 +4,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/Button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { signUpEmail } from '../../lib/firebase';
+import { ensureUserProfile, signUpEmail } from '../../lib/firebase';
 import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import * as AuthSession from 'expo-auth-session';
@@ -15,7 +15,7 @@ export default function SignupScreen() {
   WebBrowser.maybeCompleteAuthSession();
   const router = useRouter();
   const defaultGoogleClientId =
-    '893149086467-72mm49s9guhltn9er7l649icbn12h968.apps.googleusercontent.com';
+    '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com';
   const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || defaultGoogleClientId;
   const googleRedirectUri = AuthSession.makeRedirectUri({
     useProxy: true,
@@ -108,6 +108,7 @@ export default function SignupScreen() {
       if (idToken) {
         const credential = GoogleAuthProvider.credential(idToken);
         const userCred = await signInWithCredential(auth, credential);
+        await ensureUserProfile(userCred.user);
         await AsyncStorage.setItem('userToken', userCred.user.uid);
         router.replace('/(tabs)/home');
       } else {
@@ -229,7 +230,6 @@ export default function SignupScreen() {
                 onPress={handleSignup}
                 disabled={loading}
               />
-              {/*
               <TouchableOpacity
                 style={[styles.socialBtn, loadingGoogle && { opacity: 0.7 }]}
                 onPress={handleGoogle}
@@ -238,7 +238,6 @@ export default function SignupScreen() {
                 <FontAwesome5 name="google" size={16} color="#fff" />
                 <Text style={styles.socialBtnText}>{loadingGoogle ? 'Please wait...' : 'Sign up with Google'}</Text>
               </TouchableOpacity>
-              */}
             </View>
           </View>
 
