@@ -24,7 +24,7 @@ export default function LoginScreen() {
   const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || defaultGoogleClientId;
   const googleRedirectUri = AuthSession.makeRedirectUri({
     useProxy: true,
-    projectNameForProxy: '@jamesarnold/sachio-express',
+    projectNameForProxy: '@jamesarnold/Sachio-Mobile-Toilets',
   } as any);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
