@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,27 +6,55 @@ import Button from '../../components/Button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ensureUserProfile, signUpEmail } from '../../lib/firebase';
 import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import * as Linking from 'expo-linking';
 import { auth } from '../../lib/firebase';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
 
 export default function SignupScreen() {
-  WebBrowser.maybeCompleteAuthSession();
   const router = useRouter();
-  const defaultGoogleClientId =
-    '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com';
-  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || defaultGoogleClientId;
-  const googleRedirectUri = AuthSession.makeRedirectUri({
-    scheme: 'sachio',
-  });
+  const webLoginBaseUrl = 'https://sachio-mobile-web.vercel.app';
+  const appRedirectUri = 'sachio://auth/callback';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingWeb, setLoadingWeb] = useState(false);
+
+  useEffect(() => {
+    const handleAuthCallback = async (url: string) => {
+      const parsed = Linking.parse(url);
+      if (parsed?.path !== 'auth/callback') return;
+      const idToken = parsed?.queryParams?.idToken;
+      if (typeof idToken !== 'string' || !idToken) return;
+      try {
+        const credential = GoogleAuthProvider.credential(idToken);
+        const userCred = await signInWithCredential(auth, credential);
+        await ensureUserProfile(userCred.user);
+        await AsyncStorage.setItem('userToken', userCred.user.uid);
+        router.replace('/(tabs)/home');
+      } catch (err: any) {
+        Alert.alert('Login failed', err?.message || 'Try again');
+      } finally {
+        setLoadingWeb(false);
+      }
+    };
+
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      void handleAuthCallback(url);
+    });
+
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        void handleAuthCallback(url);
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, [router]);
 
   const passwordScore = useMemo(() => {
     let score = 0;
@@ -70,53 +98,14 @@ export default function SignupScreen() {
     }
   };
 
-  const handleGoogle = async () => {
-    setLoadingGoogle(true);
+  const handleWebLogin = async () => {
+    setLoadingWeb(true);
+    const url = `${webLoginBaseUrl}/?redirect_uri=${encodeURIComponent(appRedirectUri)}`;
     try {
-      const nonce = Math.random().toString(36).slice(2);
-      const authUrl =
-        'https://accounts.google.com/o/oauth2/v2/auth' +
-        '?response_type=id_token' +
-        '&scope=openid%20profile%20email' +
-        '&prompt=select_account' +
-        `&client_id=${googleClientId}` +
-        `&redirect_uri=${encodeURIComponent(googleRedirectUri)}` +
-        `&nonce=${nonce}`;
-
-      let idToken: string | null = null;
-
-      if (typeof (AuthSession as any).startAsync === 'function') {
-        const result: any = await (AuthSession as any).startAsync({
-          authUrl,
-          returnUrl: googleRedirectUri,
-        });
-        if (result?.type === 'success' && result?.params?.id_token) {
-          idToken = result.params.id_token;
-        }
-      } else {
-        // Fallback for Expo Go where startAsync may be missing
-        const res = await WebBrowser.openAuthSessionAsync(authUrl, googleRedirectUri);
-        if (res.type === 'success' && res.url) {
-          const match = res.url.match(/id_token=([^&]+)/);
-          if (match?.[1]) {
-            idToken = decodeURIComponent(match[1]);
-          }
-        }
-      }
-
-      if (idToken) {
-        const credential = GoogleAuthProvider.credential(idToken);
-        const userCred = await signInWithCredential(auth, credential);
-        await ensureUserProfile(userCred.user);
-        await AsyncStorage.setItem('userToken', userCred.user.uid);
-        router.replace('/(tabs)/home');
-      } else {
-        Alert.alert('Google sign-in cancelled');
-      }
+      await Linking.openURL(url);
     } catch (e: any) {
-      Alert.alert('Google sign-in failed', e?.message || 'Try again');
-    } finally {
-      setLoadingGoogle(false);
+      Alert.alert('Unable to open web login', e?.message || 'Try again');
+      setLoadingWeb(false);
     }
   };
 
@@ -230,12 +219,14 @@ export default function SignupScreen() {
                 disabled={loading}
               />
               <TouchableOpacity
-                style={[styles.socialBtn, loadingGoogle && { opacity: 0.7 }]}
-                onPress={handleGoogle}
-                disabled={loadingGoogle}
+                style={[styles.webBtn, loadingWeb && { opacity: 0.7 }]}
+                onPress={handleWebLogin}
+                disabled={loadingWeb}
               >
-                <FontAwesome5 name="google" size={16} color="#fff" />
-                <Text style={styles.socialBtnText}>{loadingGoogle ? 'Please wait...' : 'Sign up with Google'}</Text>
+                <FontAwesome5 name="globe" size={16} color="#0B6E6B" />
+                <Text style={styles.webBtnText}>
+                  {loadingWeb ? 'Opening...' : 'Continue on Google'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -395,17 +386,19 @@ const styles = StyleSheet.create({
     color: '#0B6E6B',
     fontFamily: 'Nunito',
   },
-  socialBtn: {
-    marginTop: 12,
-    backgroundColor: '#DB4437',
+  webBtn: {
+    marginTop: 10,
+    backgroundColor: '#E6F4F3',
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#D1E7E5',
   },
-  socialBtnText: { color: '#fff', fontWeight: '700' },
+  webBtnText: { color: '#0B6E6B', fontWeight: '700' },
 });
 
 

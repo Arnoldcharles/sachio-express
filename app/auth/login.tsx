@@ -7,8 +7,6 @@ import { useRouter } from 'expo-router';
 import Button from '../../components/Button';
 import { ensureUserProfile, signInEmail, getUserProfile, sendPasswordReset, signOut } from '../../lib/firebase';
 import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
 import * as Linking from 'expo-linking';
 import { auth } from '../../lib/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -18,20 +16,12 @@ const Text = (props: React.ComponentProps<typeof RNText>) => (
 );
 
 export default function LoginScreen() {
-  WebBrowser.maybeCompleteAuthSession();
   const router = useRouter();
-  const defaultGoogleClientId =
-    '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com';
-  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || defaultGoogleClientId;
-  const googleRedirectUri = AuthSession.makeRedirectUri({
-    scheme: 'sachio',
-  });
-  const webLoginBaseUrl = 'http://localhost:3000';
+  const webLoginBaseUrl = 'https://sachio-mobile-web.vercel.app';
   const appRedirectUri = 'sachio://auth/callback';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingWeb, setLoadingWeb] = useState(false);
 
   useEffect(() => {
@@ -103,57 +93,6 @@ export default function LoginScreen() {
       Alert.alert('Error', 'Incorrect email or password. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGoogle = async () => {
-    setLoadingGoogle(true);
-    try {
-      const nonce = Math.random().toString(36).slice(2);
-      const authUrl =
-        'https://accounts.google.com/o/oauth2/v2/auth' +
-        '?response_type=id_token' +
-        '&scope=openid%20profile%20email' +
-        '&prompt=select_account' +
-        `&client_id=${googleClientId}` +
-        `&redirect_uri=${encodeURIComponent(googleRedirectUri)}` +
-        `&nonce=${nonce}`;
-
-      let idToken: string | null = null;
-
-      if (typeof (AuthSession as any).startAsync === 'function') {
-        const result: any = await (AuthSession as any).startAsync({
-          authUrl,
-          returnUrl: googleRedirectUri,
-        });
-        if (result?.type === 'success' && result?.params?.id_token) {
-          idToken = result.params.id_token;
-        }
-      } else {
-        const res = await WebBrowser.openAuthSessionAsync(authUrl, googleRedirectUri);
-        if (res.type === 'success' && res.url) {
-          const match = res.url.match(/id_token=([^&]+)/);
-          if (match?.[1]) {
-            idToken = decodeURIComponent(match[1]);
-          }
-        }
-      }
-
-      if (idToken) {
-        const credential = GoogleAuthProvider.credential(idToken);
-        const userCred = await signInWithCredential(auth, credential);
-        await ensureUserProfile(userCred.user);
-        await AsyncStorage.setItem('userToken', userCred.user.uid);
-        const blocked = await enforceBlockIfNeeded(userCred.user.uid);
-        if (blocked) return;
-        router.replace('/(tabs)/home');
-      } else {
-        Alert.alert('Google sign-in cancelled');
-      }
-    } catch (e: any) {
-      Alert.alert('Google sign-in failed', e?.message || 'Try again');
-    } finally {
-      setLoadingGoogle(false);
     }
   };
 
@@ -249,23 +188,13 @@ export default function LoginScreen() {
 
               <Button title={loading ? 'Logging in...' : 'Sign In'} onPress={handleLogin} disabled={loading} />
               <TouchableOpacity
-                style={[styles.socialBtn, loadingGoogle && { opacity: 0.7 }]}
-                onPress={handleGoogle}
-                disabled={loadingGoogle}
-              >
-                <FontAwesome5 name="google" size={16} color="#fff" />
-                <Text style={styles.socialBtnText}>
-                  {loadingGoogle ? 'Please wait...' : 'Continue with Google'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
                 style={[styles.webBtn, loadingWeb && { opacity: 0.7 }]}
                 onPress={handleWebLogin}
                 disabled={loadingWeb}
               >
                 <FontAwesome5 name="globe" size={16} color="#0B6E6B" />
                 <Text style={styles.webBtnText}>
-                  {loadingWeb ? 'Opening...' : 'Continue on Web'}
+                  {loadingWeb ? 'Opening...' : 'Continue on Google'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -385,17 +314,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0B6E6B',
   },
-  socialBtn: {
-    marginTop: 12,
-    backgroundColor: '#DB4437',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  socialBtnText: { color: '#fff', fontWeight: '700' },
   webBtn: {
     marginTop: 10,
     backgroundColor: '#E6F4F3',
