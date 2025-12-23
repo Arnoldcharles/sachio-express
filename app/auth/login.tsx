@@ -1,5 +1,5 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text as RNText, StyleSheet, TextInput, TouchableOpacity, Alert, StatusBar, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { ensureUserProfile, signInEmail, getUserProfile, sendPasswordReset, sign
 import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import * as Linking from 'expo-linking';
 import { auth } from '../../lib/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
 
@@ -23,13 +24,51 @@ export default function LoginScreen() {
     '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com';
   const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || defaultGoogleClientId;
   const googleRedirectUri = AuthSession.makeRedirectUri({
-    useProxy: true,
-    projectNameForProxy: '@jamesarnold/Sachio-Mobile-Toilets',
-  } as any);
+    scheme: 'sachio',
+  });
+  const webLoginBaseUrl = 'http://localhost:3000';
+  const appRedirectUri = 'sachio://auth/callback';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingWeb, setLoadingWeb] = useState(false);
+
+  useEffect(() => {
+    const handleAuthCallback = async (url: string) => {
+      const parsed = Linking.parse(url);
+      if (parsed?.path !== 'auth/callback') return;
+      const idToken = parsed?.queryParams?.idToken;
+      if (typeof idToken !== 'string' || !idToken) return;
+      try {
+        const credential = GoogleAuthProvider.credential(idToken);
+        const userCred = await signInWithCredential(auth, credential);
+        await ensureUserProfile(userCred.user);
+        await AsyncStorage.setItem('userToken', userCred.user.uid);
+        const blocked = await enforceBlockIfNeeded(userCred.user.uid);
+        if (blocked) return;
+        router.replace('/(tabs)/home');
+      } catch (err: any) {
+        Alert.alert('Login failed', err?.message || 'Try again');
+      } finally {
+        setLoadingWeb(false);
+      }
+    };
+
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      void handleAuthCallback(url);
+    });
+
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        void handleAuthCallback(url);
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, [router]);
 
   const enforceBlockIfNeeded = async (uid: string) => {
     try {
@@ -115,6 +154,17 @@ export default function LoginScreen() {
       Alert.alert('Google sign-in failed', e?.message || 'Try again');
     } finally {
       setLoadingGoogle(false);
+    }
+  };
+
+  const handleWebLogin = async () => {
+    setLoadingWeb(true);
+    const url = `${webLoginBaseUrl}/?redirect_uri=${encodeURIComponent(appRedirectUri)}`;
+    try {
+      await Linking.openURL(url);
+    } catch (e: any) {
+      Alert.alert('Unable to open web login', e?.message || 'Try again');
+      setLoadingWeb(false);
     }
   };
 
@@ -206,6 +256,16 @@ export default function LoginScreen() {
                 <FontAwesome5 name="google" size={16} color="#fff" />
                 <Text style={styles.socialBtnText}>
                   {loadingGoogle ? 'Please wait...' : 'Continue with Google'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.webBtn, loadingWeb && { opacity: 0.7 }]}
+                onPress={handleWebLogin}
+                disabled={loadingWeb}
+              >
+                <FontAwesome5 name="globe" size={16} color="#0B6E6B" />
+                <Text style={styles.webBtnText}>
+                  {loadingWeb ? 'Opening...' : 'Continue on Web'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -336,4 +396,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   socialBtnText: { color: '#fff', fontWeight: '700' },
+  webBtn: {
+    marginTop: 10,
+    backgroundColor: '#E6F4F3',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#D1E7E5',
+  },
+  webBtnText: { color: '#0B6E6B', fontWeight: '700' },
 });

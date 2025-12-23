@@ -18,8 +18,7 @@ export default function SignupScreen() {
     '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com';
   const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || defaultGoogleClientId;
   const googleRedirectUri = AuthSession.makeRedirectUri({
-    useProxy: true,
-    projectNameForProxy: '@jamesarnold/sachio-express',
+    scheme: 'sachio',
   });
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
