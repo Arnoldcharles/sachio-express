@@ -8,18 +8,18 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1052577492056:android:f85357113b32ff37a4ae2d",
+        "mobilesdk_app_id": "1:1052577492056:android:964ecf23c7495401a4ae2d",
         "android_client_info": {
-          "package_name": "sachio.moblie"
+          "package_name": "sachio.mobile"
         }
       },
       "oauth_client": [
         {
-          "client_id": "1052577492056-sqth8f4s0anm73p4nu24tm2m56hi7suc.apps.googleusercontent.com",
+          "client_id": "1052577492056-2rgddg4pdqthqs31fkedf5733mf8siq8.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "sachio.moblie",
-            "certificate_hash": "5cc016141bd44162733c31b2838310320e35d3e8"
+            "package_name": "sachio.mobile",
+            "certificate_hash": "4989dbc5b7f2b836a6843bc1f2cd631bc9a65de7"
           }
         },
         {
@@ -43,7 +43,7 @@
               "client_id": "1052577492056-d71nip0htumcbob91ho9mu1dfs3piurl.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "sachio.moblie"
+                "bundle_id": "sachio.mobile"
               }
             }
           ]

@@ -41,7 +41,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "googleServicesFile": "./google-services.json",
-      "package": "sachio.moblie"
+      "package": "sachio.mobile"
     },
     "web": {
       "output": "static",
