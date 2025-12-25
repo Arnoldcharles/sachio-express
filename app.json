@@ -49,6 +49,12 @@
     },
     "plugins": [
       "./plugins/rnfirebase-app.plugin",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1052577492056-d71nip0htumcbob91ho9mu1dfs3piurl"
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",

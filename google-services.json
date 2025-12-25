@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1052577492056-sqth8f4s0anm73p4nu24tm2m56hi7suc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "sachio.moblie",
+            "certificate_hash": "5cc016141bd44162733c31b2838310320e35d3e8"
+          }
+        },
+        {
           "client_id": "1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -30,6 +38,13 @@
             {
               "client_id": "1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "1052577492056-d71nip0htumcbob91ho9mu1dfs3piurl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "sachio.moblie"
+              }
             }
           ]
         }

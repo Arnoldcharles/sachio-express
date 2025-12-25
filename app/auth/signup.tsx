@@ -6,55 +6,28 @@ import Button from '../../components/Button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ensureUserProfile, signUpEmail } from '../../lib/firebase';
 import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
-import * as Linking from 'expo-linking';
 import { auth } from '../../lib/firebase';
 import { useRouter } from 'expo-router';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 export default function SignupScreen() {
   const router = useRouter();
-  const webLoginBaseUrl = 'https://sachio-mobile-web.vercel.app';
-  const appRedirectUri = 'sachio://auth/callback';
+  const googleWebClientId =
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
+    '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingWeb, setLoadingWeb] = useState(false);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
 
   useEffect(() => {
-    const handleAuthCallback = async (url: string) => {
-      const parsed = Linking.parse(url);
-      if (parsed?.path !== 'auth/callback') return;
-      const idToken = parsed?.queryParams?.idToken;
-      if (typeof idToken !== 'string' || !idToken) return;
-      try {
-        const credential = GoogleAuthProvider.credential(idToken);
-        const userCred = await signInWithCredential(auth, credential);
-        await ensureUserProfile(userCred.user);
-        await AsyncStorage.setItem('userToken', userCred.user.uid);
-        router.replace('/(tabs)/home');
-      } catch (err: any) {
-        Alert.alert('Login failed', err?.message || 'Try again');
-      } finally {
-        setLoadingWeb(false);
-      }
-    };
-
-    const sub = Linking.addEventListener('url', ({ url }) => {
-      void handleAuthCallback(url);
+    GoogleSignin.configure({
+      webClientId: googleWebClientId,
     });
-
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        void handleAuthCallback(url);
-      }
-    });
-
-    return () => {
-      sub.remove();
-    };
-  }, [router]);
+  }, [googleWebClientId]);
 
   const passwordScore = useMemo(() => {
     let score = 0;
@@ -98,14 +71,33 @@ export default function SignupScreen() {
     }
   };
 
-  const handleWebLogin = async () => {
-    setLoadingWeb(true);
-    const url = `${webLoginBaseUrl}/?redirect_uri=${encodeURIComponent(appRedirectUri)}`;
+  const handleGoogle = async () => {
+    setLoadingGoogle(true);
     try {
-      await Linking.openURL(url);
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await GoogleSignin.signIn();
+      const tokens = await GoogleSignin.getTokens();
+      const idToken = tokens?.idToken;
+      if (!idToken) {
+        throw new Error('No Google idToken returned');
+      }
+      const credential = GoogleAuthProvider.credential(idToken);
+      const userCred = await signInWithCredential(auth, credential);
+      await ensureUserProfile(userCred.user);
+      await AsyncStorage.setItem('userToken', userCred.user.uid);
+      router.replace('/(tabs)/home');
     } catch (e: any) {
-      Alert.alert('Unable to open web login', e?.message || 'Try again');
-      setLoadingWeb(false);
+      if (e?.code === statusCodes.SIGN_IN_CANCELLED) {
+        Alert.alert('Google sign-in cancelled');
+      } else if (e?.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('Google sign-in in progress');
+      } else if (e?.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Google Play Services unavailable');
+      } else {
+        Alert.alert('Google sign-in failed', e?.message || 'Try again');
+      }
+    } finally {
+      setLoadingGoogle(false);
     }
   };
 
@@ -219,13 +211,13 @@ export default function SignupScreen() {
                 disabled={loading}
               />
               <TouchableOpacity
-                style={[styles.webBtn, loadingWeb && { opacity: 0.7 }]}
-                onPress={handleWebLogin}
-                disabled={loadingWeb}
+                style={[styles.socialBtn, loadingGoogle && { opacity: 0.7 }]}
+                onPress={handleGoogle}
+                disabled={loadingGoogle}
               >
-                <FontAwesome5 name="globe" size={16} color="#0B6E6B" />
-                <Text style={styles.webBtnText}>
-                  {loadingWeb ? 'Opening...' : 'Continue on Google'}
+                <FontAwesome5 name="google" size={16} color="#fff" />
+                <Text style={styles.socialBtnText}>
+                  {loadingGoogle ? 'Please wait...' : 'Continue with Google'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -386,19 +378,15 @@ const styles = StyleSheet.create({
     color: '#0B6E6B',
     fontFamily: 'Nunito',
   },
-  webBtn: {
+  socialBtn: {
     marginTop: 10,
-    backgroundColor: '#E6F4F3',
+    backgroundColor: '#DB4437',
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-    borderWidth: 1,
-    borderColor: '#D1E7E5',
   },
-  webBtnText: { color: '#0B6E6B', fontWeight: '700' },
+  socialBtnText: { color: '#fff', fontWeight: '700' },
 });
-
-
