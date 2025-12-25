@@ -41,7 +41,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "googleServicesFile": "./google-services.json",
-      "package": "sachio.mobile"
+      "package": "com.sachio.mobile.toilets"
     },
     "web": {
       "output": "static",

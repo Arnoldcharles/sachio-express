@@ -8,18 +8,18 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1052577492056:android:964ecf23c7495401a4ae2d",
+        "mobilesdk_app_id": "1:1052577492056:android:54bcfc893c9d5e49a4ae2d",
         "android_client_info": {
-          "package_name": "sachio.mobile"
+          "package_name": "com.sachio.mobile.toilets"
         }
       },
       "oauth_client": [
         {
-          "client_id": "1052577492056-2rgddg4pdqthqs31fkedf5733mf8siq8.apps.googleusercontent.com",
+          "client_id": "1052577492056-gngfh45j1snbu7scrbcl02vccvbprfnd.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "sachio.mobile",
-            "certificate_hash": "49:89:DB:C5:B7:F2:B8:36:A6:84:3B:C1:F2:CD:63:1B:C9:A6:5D:E7"
+            "package_name": "com.sachio.mobile.toilets",
+            "certificate_hash": "218fe4e690c8f4788dbdc5913643bf8afd2eabae"
           }
         },
         {
