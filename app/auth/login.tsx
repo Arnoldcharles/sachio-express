@@ -6,10 +6,9 @@ import { useRouter } from 'expo-router';
 
 import Button from '../../components/Button';
 import { ensureUserProfile, signInEmail, getUserProfile, sendPasswordReset, signOut } from '../../lib/firebase';
-import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
 
 const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
@@ -78,7 +77,7 @@ export default function LoginScreen() {
         throw new Error('No Google idToken returned');
       }
       const credential = GoogleAuthProvider.credential(idToken);
-      const userCred = await signInWithCredential(auth, credential);
+      const userCred = await auth().signInWithCredential(credential);
       await ensureUserProfile(userCred.user);
       await AsyncStorage.setItem('userToken', userCred.user.uid);
       const blocked = await enforceBlockIfNeeded(userCred.user.uid);

@@ -5,10 +5,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/Button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ensureUserProfile, signUpEmail } from '../../lib/firebase';
-import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
 import { useRouter } from 'expo-router';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -82,7 +81,7 @@ export default function SignupScreen() {
         throw new Error('No Google idToken returned');
       }
       const credential = GoogleAuthProvider.credential(idToken);
-      const userCred = await signInWithCredential(auth, credential);
+      const userCred = await auth().signInWithCredential(credential);
       await ensureUserProfile(userCred.user);
       await AsyncStorage.setItem('userToken', userCred.user.uid);
       router.replace('/(tabs)/home');

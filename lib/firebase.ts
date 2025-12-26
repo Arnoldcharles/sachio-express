@@ -74,7 +74,12 @@ export async function signUpEmail(email: string, password: string, profile: { na
 }
 
 export async function ensureUserProfile(
-  user: User,
+  user: {
+    uid: string;
+    email?: string | null;
+    displayName?: string | null;
+    phoneNumber?: string | null;
+  },
   profile: { name?: string | null; phone?: string | null } = {}
 ) {
   const userRef = doc(db, 'users', user.uid);
