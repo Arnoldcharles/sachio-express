@@ -3,7 +3,7 @@ import { View, Text as RNText, StyleSheet, ScrollView, TouchableOpacity, Switch,
 import { FontAwesome5 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { auth, getUserProfile, signOut, db } from '../../lib/firebase';
+import { auth, ensureUserProfile, getUserProfile, signOut, db } from '../../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '../../components/Toast';
 
@@ -62,17 +62,25 @@ export default function ProfileTab() {
         }
         const profile = await getUserProfile(current.uid);
         if (!mounted) return;
-        if (profile) {
-          setUser(profile);
-          setAddresses(profile.addresses || []);
-          setEditData({ name: profile.name || '', phone: profile.phone || '', address: '' });
-          if (profile.notifications) {
-            setNotifications({
-              push: profile.notifications.push ?? true,
-              sms: profile.notifications.sms ?? false,
-              email: profile.notifications.email ?? false,
-            });
-          }
+        const mergedProfile =
+          profile ||
+          (await ensureUserProfile(current, {
+            name: current.displayName ?? null,
+            phone: current.phoneNumber ?? null,
+          }));
+        setUser(mergedProfile);
+        setAddresses(mergedProfile.addresses || []);
+        setEditData({
+          name: mergedProfile.name || '',
+          phone: mergedProfile.phone || '',
+          address: '',
+        });
+        if (mergedProfile.notifications) {
+          setNotifications({
+            push: mergedProfile.notifications.push ?? true,
+            sms: mergedProfile.notifications.sms ?? false,
+            email: mergedProfile.notifications.email ?? false,
+          });
         }
       } catch (e) {
         console.warn('Failed to load profile', e);
@@ -90,10 +98,14 @@ export default function ProfileTab() {
       const current = auth.currentUser;
       if (!current) return;
       const profile = await getUserProfile(current.uid);
-      if (profile) {
-        setUser(profile);
-        setAddresses(profile.addresses || []);
-      }
+      const mergedProfile =
+        profile ||
+        (await ensureUserProfile(current, {
+          name: current.displayName ?? null,
+          phone: current.phoneNumber ?? null,
+        }));
+      setUser(mergedProfile);
+      setAddresses(mergedProfile.addresses || []);
     } catch (e) {
       // ignore
     } finally {

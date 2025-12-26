@@ -40,6 +40,7 @@ export default function OrdersTab() {
   const [activeTab, setActiveTab] = useState<'active' | 'past' | 'cancelled'>('active');
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [currentUser, setCurrentUser] = useState<FirebaseAuthTypes.User | null>(auth.currentUser);
+  const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   // Track previous statuses to optionally inform users in-app (no push in Expo Go)
@@ -50,6 +51,7 @@ export default function OrdersTab() {
     if (!auth || typeof auth.onAuthStateChanged !== 'function') return;
     const unsubAuth = auth.onAuthStateChanged((user: FirebaseAuthTypes.User | null) => {
       setCurrentUser(user);
+      setUserId(user?.uid ?? null);
     });
     return () => unsubAuth();
   }, []);
@@ -57,12 +59,12 @@ export default function OrdersTab() {
   // Load cached orders immediately for a smoother returning experience
   useEffect(() => {
     const loadCache = async () => {
-      if (!currentUser) {
+      if (!userId) {
         setOrders([]);
         return;
       }
       try {
-        const cached = await AsyncStorage.getItem(cacheKey(currentUser.uid));
+        const cached = await AsyncStorage.getItem(cacheKey(userId));
         if (cached) {
           const parsed: OrderItem[] = JSON.parse(cached);
           setOrders(parsed);
@@ -73,25 +75,38 @@ export default function OrdersTab() {
       }
     };
     loadCache();
-  }, [currentUser]);
+  }, [userId]);
+
+  useEffect(() => {
+    const loadStoredUser = async () => {
+      if (auth.currentUser?.uid) return;
+      try {
+        const stored = await AsyncStorage.getItem('userToken');
+        if (stored) setUserId(stored);
+      } catch {
+        // ignore storage errors
+      }
+    };
+    loadStoredUser();
+  }, []);
 
   useEffect(() => {
     // Live updates from Firestore for order status changes
-    if (!currentUser) {
+    if (!userId) {
       setLoading(false);
       setOrders([]);
       return;
     }
     const q = query(
       collection(db, 'orders'),
-      where('userId', '==', currentUser.uid),
+      where('userId', '==', userId),
       orderBy('createdAt', 'desc'),
     );
     const unsub = onSnapshot(
       q,
       (snapshot) => {
         const list: OrderItem[] = [];
-        snapshot.forEach((doc) => {
+        snapshot.forEach((doc: any) => {
           list.push({ id: doc.id, ...(doc.data() as any) });
         });
         setOrders(list);
@@ -102,7 +117,7 @@ export default function OrdersTab() {
         });
         lastStatuses.current = next;
         // Persist latest orders for quick access next session
-        AsyncStorage.setItem(cacheKey(currentUser.uid), JSON.stringify(list)).catch(() => {});
+        AsyncStorage.setItem(cacheKey(userId), JSON.stringify(list)).catch(() => {});
         setLoading(false);
         setRefreshing(false);
       },
@@ -112,7 +127,7 @@ export default function OrdersTab() {
       },
     );
     return () => unsub();
-  }, [currentUser]);
+  }, [userId]);
 
   const grouped = useMemo(() => {
     return orders.reduce(
@@ -217,7 +232,7 @@ export default function OrdersTab() {
           ))}
         </View>
 
-        {!currentUser ? (
+        {!userId ? (
           <View style={styles.emptyState}>
             <FontAwesome5 name="lock" size={48} color="#ddd" />
             <Text style={styles.emptyText}>Login required</Text>

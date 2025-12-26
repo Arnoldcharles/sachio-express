@@ -28,6 +28,7 @@ type CartItem = {
 };
 
 const CART_KEY = "cart_items";
+const PAYMENT_FAILED_KEY = "payment_failed";
 
 export default function CartScreen() {
   const router = useRouter();
@@ -45,8 +46,6 @@ export default function CartScreen() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
-  const [rentalStart, setRentalStart] = useState("");
-  const [rentalEnd, setRentalEnd] = useState("");
   const FLW_PUBLIC_KEY =
     process.env.EXPO_PUBLIC_FLW_PUBLIC_KEY ??
     "FLWPUBK_TEST-b4b6028b1cd2963606e7fd405623b8f6-X";
@@ -194,6 +193,7 @@ export default function CartScreen() {
     reference: string | null
   ) => {
     try {
+      const storedUserId = await AsyncStorage.getItem("userToken");
       const data = {
         items: itemsToSave.map((it) => ({
           id: it.id,
@@ -209,12 +209,10 @@ export default function CartScreen() {
         type: "buy",
         paymentMethod: "Card",
         paymentMethodId: "flutterwave",
-        userId: auth.currentUser?.uid || "guest",
+        userId: auth.currentUser?.uid || storedUserId || "guest",
         customerName: auth.currentUser?.email || "Guest",
         customerPhone: phone || null,
         customerAddress: address || null,
-        rentalStartDate: rentalStart || null,
-        rentalEndDate: rentalEnd || null,
         country,
         city,
         state: stateField,
@@ -228,6 +226,20 @@ export default function CartScreen() {
     } catch (e) {
       return null;
     }
+  };
+
+  const handlePaymentFailed = async (message: string) => {
+    setFlutterwaveUrl(null);
+    setLoading(false);
+    try {
+      await AsyncStorage.setItem(
+        PAYMENT_FAILED_KEY,
+        JSON.stringify({ message })
+      );
+    } catch (e) {
+      // ignore storage errors
+    }
+    router.replace("/(tabs)/home");
   };
 
   return (
@@ -349,7 +361,7 @@ export default function CartScreen() {
             </View>
             {showForm && (
               <View style={styles.formCard}>
-                <Text style={styles.sectionLabel}>Delivery Details</Text>
+                <Text style={styles.sectionTitle}>Delivery Details</Text>
                 <TextInput
                   placeholder="Country"
                   value={country}
@@ -395,20 +407,6 @@ export default function CartScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
-                <TextInput
-                  placeholder="Rental start date (YYYY-MM-DD) - optional"
-                  value={rentalStart}
-                  onChangeText={setRentalStart}
-                  style={styles.input}
-                  placeholderTextColor="#94a3b8"
-                />
-                <TextInput
-                  placeholder="Rental end date (YYYY-MM-DD) - optional"
-                  value={rentalEnd}
-                  onChangeText={setRentalEnd}
-                  style={styles.input}
-                  placeholderTextColor="#94a3b8"
-                />
                 <Text style={styles.helperTextSmall}>
                   Additional Information (optional)
                 </Text>
@@ -433,6 +431,11 @@ export default function CartScreen() {
                       nav.url.includes("status=successful") ||
                       nav.url.includes("success=true") ||
                       nav.url.includes("sachio-mobile/close");
+                    const failedHit =
+                      nav.url.includes("status=failed") ||
+                      nav.url.includes("status=cancelled") ||
+                      nav.url.includes("cancelled") ||
+                      nav.url.includes("cancel");
                     if (successHit && items.length) {
                       setLoading(true);
                       const createdId = await createOrder(items, txRef);
@@ -443,24 +446,19 @@ export default function CartScreen() {
                       setPaymentSuccess(true);
                       setOrderRef(txRef || createdId || null);
                       setFlutterwaveUrl(null);
+                      router.replace("/(tabs)/orders");
+                    } else if (failedHit) {
+                      const cancelled =
+                        nav.url.includes("status=cancelled") ||
+                        nav.url.includes("cancelled");
+                      const failureMessage = cancelled
+                        ? "Payment cancelled. You can try again."
+                        : "Payment failed. Please try again.";
+                      await handlePaymentFailed(failureMessage);
                     }
                   }}
                   showsVerticalScrollIndicator={false}
                 />
-              </View>
-            ) : paymentSuccess ? (
-              <View style={styles.successBox}>
-                <FontAwesome5 name="check-circle" size={18} color="#16A34A" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.successTitle}>Payment successful</Text>
-                  <Text style={styles.successSub}>Ref: {orderRef || "—"}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.checkoutBtn}
-                  onPress={() => router.push("/(tabs)/orders")}
-                >
-                  <Text style={styles.checkoutText}>View Orders</Text>
-                </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity
@@ -690,5 +688,13 @@ const styles = StyleSheet.create({
     color: "#64748b",
     marginTop: 10,
   },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
 });
+
+
+
 

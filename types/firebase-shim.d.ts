@@ -47,7 +47,7 @@ declare module 'firebase/firestore' {
 
   export function getFirestore(app?: FirebaseApp): Firestore;
   export function doc(firestore: Firestore, path: string, ...pathSegments: string[]): DocumentReference;
-  export function setDoc(reference: DocumentReference, data: any): Promise<void>;
+  export function setDoc(reference: DocumentReference, data: any, options?: any): Promise<void>;
   export function getDoc(reference: DocumentReference): Promise<DocumentSnapshot>;
   export function collection(firestore: Firestore, path: string, ...pathSegments: string[]): any;
   export function addDoc(collectionRef: any, data: any): Promise<DocumentReference>;

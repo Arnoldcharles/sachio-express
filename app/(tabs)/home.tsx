@@ -41,6 +41,7 @@ const Text = (props: React.ComponentProps<typeof RNText>) => (
 );
 
 const CART_KEY = "cart_items";
+const PAYMENT_FAILED_KEY = "payment_failed";
 const ANNOUNCEMENT_DISMISS_KEY = "announcement_dismissed";
 type Announcement = {
   id: string;
@@ -159,6 +160,10 @@ export default function HomeScreen() {
   const [showAnnouncement, setShowAnnouncement] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [cartCount, setCartCount] = useState(0);
+  const [showPaymentFailed, setShowPaymentFailed] = useState(false);
+  const [paymentFailedMessage, setPaymentFailedMessage] = useState(
+    "Your payment was not completed. Please try again."
+  );
   const [rentName, setRentName] = useState("");
   const [rentEmail, setRentEmail] = useState("");
   const [rentPhone, setRentPhone] = useState("");
@@ -259,11 +264,60 @@ export default function HomeScreen() {
     setCartCount(count);
   }, []);
 
+  const saveCartItems = async (items: any[]) => {
+    await AsyncStorage.setItem(CART_KEY, JSON.stringify(items));
+    const count = items.reduce((sum, item) => sum + (item.qty || 1), 0);
+    setCartCount(count);
+  };
+
   useFocusEffect(
     useCallback(() => {
       loadCartCount();
+      const intervalId = setInterval(() => {
+        loadCartCount();
+      }, 1000);
+      return () => clearInterval(intervalId);
     }, [loadCartCount])
   );
+
+  
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const checkPaymentFailed = async () => {
+        try {
+          const flag = await AsyncStorage.getItem(PAYMENT_FAILED_KEY);
+          if (flag && active) {
+            let message =
+              "Your payment was not completed. Please try again.";
+            try {
+              const parsed = JSON.parse(flag);
+              if (parsed?.message) message = parsed.message;
+            } catch (parseError) {
+              // keep default message
+            }
+            setPaymentFailedMessage(message);
+            setShowPaymentFailed(true);
+            await AsyncStorage.removeItem(PAYMENT_FAILED_KEY);
+          }
+        } catch (e) {
+          // ignore storage errors
+        }
+      };
+      checkPaymentFailed();
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
+
+  useEffect(() => {
+    if (!showPaymentFailed) return;
+    const timerId = setTimeout(() => {
+      setShowPaymentFailed(false);
+    }, 4000);
+    return () => clearTimeout(timerId);
+  }, [showPaymentFailed]);
 
   useEffect(() => {
     if (userId === undefined) return;
@@ -279,7 +333,7 @@ export default function HomeScreen() {
         const dismissedId = await AsyncStorage.getItem(
           ANNOUNCEMENT_DISMISS_KEY
         );
-        const candidates: Announcement[] = snap.docs.map((d) => {
+        const candidates: Announcement[] = snap.docs.map((d: any) => {
           const data = d.data() as any;
           return {
             id: d.id,
@@ -555,10 +609,7 @@ export default function HomeScreen() {
                         qty: 1,
                       });
                     }
-                    await AsyncStorage.setItem(
-                      CART_KEY,
-                      JSON.stringify(parsed)
-                    );
+                    await saveCartItems(parsed);
                     Alert.alert(
                       "Added to cart",
                       `${item.title} was added to your cart.`
@@ -903,6 +954,30 @@ export default function HomeScreen() {
         />
       )}
 
+      {showPaymentFailed ? (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowPaymentFailed(false)}
+        >
+          <Pressable
+            style={styles.paymentBackdrop}
+            onPress={() => setShowPaymentFailed(false)}
+          >
+            <Pressable style={styles.paymentCard} onPress={() => {}}>
+              <Text style={styles.paymentTitle}>Payment failed</Text>
+              <Text style={styles.paymentBody}>{paymentFailedMessage}</Text>
+              <TouchableOpacity
+                style={styles.paymentBtn}
+                onPress={() => setShowPaymentFailed(false)}
+              >
+                <Text style={styles.paymentBtnText}>OK</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
       {showAnnouncement && announcement ? (
         <View style={styles.announcementOverlay}>
           <View style={styles.announcementCard}>
@@ -1285,4 +1360,40 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
   },
   closeBtnText: { fontSize: 14, fontWeight: "800", color: "#475569" },
-});
+  paymentBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  paymentCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  paymentTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A" },
+  paymentBody: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 20,
+  },
+  paymentBtn: {
+    marginTop: 16,
+    backgroundColor: "#EF4444",
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  paymentBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },});
+
+
