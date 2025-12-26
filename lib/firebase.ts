@@ -76,7 +76,7 @@ export async function signUpEmail(email: string, password: string, profile: { na
 export async function ensureUserProfile(
   user: {
     uid: string;
-    email?: string | null;
+    email?: string | null; 
     displayName?: string | null;
     phoneNumber?: string | null;
   },
