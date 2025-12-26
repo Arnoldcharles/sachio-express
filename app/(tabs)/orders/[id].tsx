@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { auth, db } from '../../../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
-import type { User } from 'firebase/auth';
+import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
 const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
@@ -29,11 +29,11 @@ export default function OrderDetail() {
   const [order, setOrder] = useState<OrderDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
+  const [currentUser, setCurrentUser] = useState<FirebaseAuthTypes.User | null>(auth.currentUser);
 
   useEffect(() => {
     if (!auth || typeof auth.onAuthStateChanged !== 'function') return;
-    const unsubAuth = auth.onAuthStateChanged((user) => {
+    const unsubAuth = auth.onAuthStateChanged((user: FirebaseAuthTypes.User | null) => {
       setCurrentUser(user);
     });
     return () => unsubAuth();

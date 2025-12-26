@@ -1,7 +1,7 @@
 import { Tabs, useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { auth, db, signOut } from '../../lib/firebase';
-import type { User } from 'firebase/auth';
+import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [blockMessage, setBlockMessage] = useState('Your account has been blocked by an administrator.');
@@ -18,10 +18,10 @@ export default function TabLayout() {
 
   useEffect(() => {
     if (!auth || typeof auth.onAuthStateChanged !== 'function') return;
-    const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
+    const unsubscribe = auth.onAuthStateChanged((user: FirebaseAuthTypes.User | null) => {
       setCurrentUser(user);
     });
-    setCurrentUser(auth.currentUser as User | null);
+    setCurrentUser(auth.currentUser as FirebaseAuthTypes.User | null);
     setAuthChecked(true);
     return () => {
       if (unsubscribe) unsubscribe();

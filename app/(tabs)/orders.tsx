@@ -5,7 +5,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { auth, db } from '../../lib/firebase';
 import { collection, orderBy, query, onSnapshot, where, doc, getDoc } from 'firebase/firestore';
-import type { User } from 'firebase/auth';
+import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -39,7 +39,7 @@ export default function OrdersTab() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'active' | 'past' | 'cancelled'>('active');
   const [orders, setOrders] = useState<OrderItem[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
+  const [currentUser, setCurrentUser] = useState<FirebaseAuthTypes.User | null>(auth.currentUser);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   // Track previous statuses to optionally inform users in-app (no push in Expo Go)
@@ -48,7 +48,7 @@ export default function OrdersTab() {
 
   useEffect(() => {
     if (!auth || typeof auth.onAuthStateChanged !== 'function') return;
-    const unsubAuth = auth.onAuthStateChanged((user) => {
+    const unsubAuth = auth.onAuthStateChanged((user: FirebaseAuthTypes.User | null) => {
       setCurrentUser(user);
     });
     return () => unsubAuth();

@@ -1,14 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  User,
-} from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
+import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -25,36 +17,17 @@ const firebaseConfig = {
 
 const app = getApps()[0] ?? initializeApp(firebaseConfig);
 
-// Try to enable React Native persistence when the optional RN auth entrypoint exists.
-const rnAuthModuleId = 'firebase/auth/react-native';
-type RNAuthModule = {
-  initializeAuth: typeof import('firebase/auth').initializeAuth;
-  getReactNativePersistence: (persistence: unknown) => any;
-};
-
-let auth = getAuth(app);
-try {
-  const rnAuth = require(rnAuthModuleId) as RNAuthModule;
-  if (rnAuth?.initializeAuth && rnAuth?.getReactNativePersistence) {
-    auth = rnAuth.initializeAuth(app, {
-      persistence: rnAuth.getReactNativePersistence(ReactNativeAsyncStorage),
-    });
-  }
-} catch {
-  // If the RN entrypoint is not installed or fails to load, fall back to in-memory auth.
-  auth = getAuth(app);
-}
 const db = getFirestore(app);
 const storage = getStorage(app);
 
 // Auth helpers
 export async function signInEmail(email: string, password: string) {
-  const cred = await signInWithEmailAndPassword(auth, email, password);
+  const cred = await auth().signInWithEmailAndPassword(email, password);
   return cred.user;
 }
 
 export async function signUpEmail(email: string, password: string, profile: { name?: string; phone?: string }) {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  const cred = await auth().createUserWithEmailAndPassword(email, password);
   // create a user document in firestore
   const userRef = doc(db, 'users', cred.user.uid);
   await setDoc(userRef, {
@@ -66,7 +39,7 @@ export async function signUpEmail(email: string, password: string, profile: { na
   });
   // Optionally send email verification
   try {
-    await sendEmailVerification(cred.user);
+    await cred.user.sendEmailVerification();
   } catch (e) {
     // ignore
   }
@@ -101,15 +74,15 @@ export async function ensureUserProfile(
 }
 
 export async function signOut() {
-  return firebaseSignOut(auth);
+  return auth().signOut();
 }
 
 export async function sendPasswordReset(email: string) {
-  return sendPasswordResetEmail(auth, email);
+  return auth().sendPasswordResetEmail(email);
 }
 
-export function getCurrentUser(): User | null {
-  return auth.currentUser;
+export function getCurrentUser(): FirebaseAuthTypes.User | null {
+  return auth().currentUser;
 }
 
 // Firestore helpers
@@ -119,7 +92,9 @@ export async function getUserProfile(uid: string) {
   return snap.exists() ? snap.data() : null;
 }
 
-export { auth, db, storage, firebaseConfig };
+const authInstance = auth();
+
+export { authInstance as auth, db, storage, firebaseConfig };
 
 // NOTE: Phone auth (OTP) requires additional configuration:
 // - On web: enabling reCAPTCHA verification and use signInWithPhoneNumber
