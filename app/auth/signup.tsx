@@ -11,9 +11,6 @@ import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
 
 export default function SignupScreen() {
   const router = useRouter();
-  const googleWebClientId =
-    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
-    '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -24,9 +21,9 @@ export default function SignupScreen() {
 
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: googleWebClientId,
+      webClientId: '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com',
     });
-  }, [googleWebClientId]);
+  }, []);
 
   const passwordScore = useMemo(() => {
     let score = 0;

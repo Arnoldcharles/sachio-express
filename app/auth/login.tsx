@@ -16,9 +16,6 @@ const Text = (props: React.ComponentProps<typeof RNText>) => (
 
 export default function LoginScreen() {
   const router = useRouter();
-  const googleWebClientId =
-    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
-    '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,9 +23,9 @@ export default function LoginScreen() {
 
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: googleWebClientId,
+      webClientId: '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com',
     });
-  }, [googleWebClientId]);
+  }, []);
 
   const enforceBlockIfNeeded = async (uid: string) => {
     try {
