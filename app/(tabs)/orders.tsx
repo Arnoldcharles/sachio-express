@@ -1,12 +1,11 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text as RNText, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text as RNText, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Animated, Easing } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { auth, db } from '../../lib/firebase';
 import { collection, orderBy, query, onSnapshot, where, doc, getDoc } from 'firebase/firestore';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
-import { useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Text = (props: React.ComponentProps<typeof RNText>) => (
@@ -43,6 +42,8 @@ export default function OrdersTab() {
   const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const listAnim = useRef(new Animated.Value(0)).current;
   // Track previous statuses to optionally inform users in-app (no push in Expo Go)
   const lastStatuses = useRef<Record<string, string>>({});
   const cacheKey = (uid: string) => `orders_cache_${uid}`;
@@ -55,6 +56,24 @@ export default function OrdersTab() {
     });
     return () => unsubAuth();
   }, []);
+
+  useEffect(() => {
+    const curve = Easing.bezier(0.2, 0.8, 0.2, 1);
+    Animated.stagger(120, [
+      Animated.timing(headerAnim, {
+        toValue: 1,
+        duration: 420,
+        easing: curve,
+        useNativeDriver: true,
+      }),
+      Animated.timing(listAnim, {
+        toValue: 1,
+        duration: 460,
+        easing: curve,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [headerAnim, listAnim]);
 
   // Load cached orders immediately for a smoother returning experience
   useEffect(() => {
@@ -152,13 +171,13 @@ export default function OrdersTab() {
     return '#0B6E6B';
   };
 
-  const renderOrderCard = ({ item }: { item: OrderItem }) => {
+  const renderOrderCard = ({ item, index }: { item: OrderItem; index: number }) => {
     const dateText = item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() : '';
     const toNumber = (val: any) => {
       if (typeof val === 'number') return val;
       if (typeof val === 'string') {
         // Strip currency formatting, commas, and spaces before parsing
-        const cleaned = val.replace(/[₦,]/g, '').trim();
+        const cleaned = val.replace(/[^0-9.]/g, '');
         const num = parseFloat(cleaned);
         return Number.isNaN(num) ? null : num;
       }
@@ -174,7 +193,7 @@ export default function OrdersTab() {
         : item.price
         ? `NGN ${item.price}`
         : 'NGN -';
-    const statusNorm = (item.status || '').toLowerCase();
+    const statusNorm = (item.status || '-').toLowerCase();
     const waitingPrice = numAmount == null && numPrice == null;
     const handlePress = () => {
       const paid = statusNorm.includes('paid');
@@ -185,52 +204,87 @@ export default function OrdersTab() {
         router.push(`/order?id=${item.id}`);
       }
     };
+    const baseTranslate = 12 + Math.min(index, 6) * 4;
     return (
-      <TouchableOpacity style={styles.orderCard} onPress={handlePress}>
-        <View style={styles.orderHeader}>
-          <View>
-            <Text style={styles.orderNumber}>Order #{item.id.slice(0, 6)}</Text>
-            <Text style={styles.orderDate}>{dateText}</Text>
-            <Text style={styles.orderProduct}>{item.productTitle || '—'}</Text>
-            <Text style={styles.metaLine}>
-              {item.type === 'rent' ? 'Rent' : 'Buy'} · {item.paymentMethod || 'Payment'}
-            </Text>
+      <Animated.View
+        style={[
+          {
+            opacity: listAnim.interpolate({
+              inputRange: [0, 0.6, 1],
+              outputRange: [0, 0.7, 1],
+            }),
+            transform: [
+              {
+                translateY: listAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [baseTranslate, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <TouchableOpacity style={styles.orderCard} onPress={handlePress}>
+          <View style={styles.orderHeader}>
+            <View>
+              <Text style={styles.orderNumber}>Order #{item.id.slice(0, 6)}</Text>
+              <Text style={styles.orderDate}>{dateText}</Text>
+              <Text style={styles.orderProduct}>{item.productTitle || '-'}</Text>
+              <Text style={styles.metaLine}>
+                {item.type === 'rent' ? 'Rent' : 'Buy'} - {item.paymentMethod || 'Payment'}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: getStatusColor(item.status || '-') + '20', borderColor: getStatusColor(item.status || '-') },
+              ]}
+            >
+              <Text style={[styles.statusText, { color: getStatusColor(item.status || '-') }]}>{item.status || '-'}</Text>
+            </View>
           </View>
-          <View
-            style={[
-              styles.statusBadge,
-              { backgroundColor: getStatusColor(item.status || '') + '20', borderColor: getStatusColor(item.status || '') },
-            ]}
-          >
-            <Text style={[styles.statusText, { color: getStatusColor(item.status || '') }]}>{item.status || '—'}</Text>
+          <View style={styles.orderFooter}>
+            <Text style={styles.orderTotal}>{total}</Text>
+            <FontAwesome5 name="chevron-right" size={14} color="#0B6E6B" />
           </View>
-        </View>
-        <View style={styles.orderFooter}>
-          <Text style={styles.orderTotal}>{total}</Text>
-          <FontAwesome5 name="chevron-right" size={14} color="#0B6E6B" />
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Header title="Orders" />
-
-        <View style={styles.tabsContainer}>
-          {['active', 'past', 'cancelled'].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
-              onPress={() => setActiveTab(tab as any)}
-            >
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Animated.View
+          style={[
+            {
+              opacity: headerAnim,
+              transform: [
+                {
+                  translateY: headerAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [12, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Header title="Orders" />
+          <View style={styles.tabsContainer}>
+            {['active', 'past', 'cancelled'].map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                style={[styles.tab, activeTab === tab && styles.tabActive]}
+                onPress={() => setActiveTab(tab as any)}
+              >
+                <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
 
         {!userId ? (
           <View style={styles.emptyState}>
@@ -247,22 +301,38 @@ export default function OrdersTab() {
             <Text style={styles.emptySubtext}>Loading your orders...</Text>
           </View>
         ) : currentOrders.length > 0 ? (
-          <FlatList
-          data={currentOrders}
-          renderItem={renderOrderCard}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                // onSnapshot keeps this updated; just show a short spinner
-                setRefreshing(true);
-                setTimeout(() => setRefreshing(false), 400);
-              }}
+          <Animated.View
+            style={[
+              {
+                opacity: listAnim,
+                transform: [
+                  {
+                    translateY: listAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [16, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <FlatList
+              data={currentOrders}
+              renderItem={renderOrderCard}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => {
+                    // onSnapshot keeps this updated; just show a short spinner
+                    setRefreshing(true);
+                    setTimeout(() => setRefreshing(false), 400);
+                  }}
+                />
+              }
             />
-          }
-        />
+          </Animated.View>
         ) : (
           <View style={styles.emptyState}>
             <FontAwesome5 name="inbox" size={48} color="#ddd" />
@@ -416,3 +486,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+

@@ -1,6 +1,6 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import React, { useEffect, useState } from 'react';
-import { View, Text as RNText, StyleSheet, TextInput, TouchableOpacity, Alert, StatusBar, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text as RNText, StyleSheet, TextInput, TouchableOpacity, Alert, StatusBar, ScrollView, KeyboardAvoidingView, Platform, Animated, Easing } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
@@ -20,12 +20,64 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const heroAnim = useRef(new Animated.Value(0)).current;
+  const cardAnim = useRef(new Animated.Value(0)).current;
+  const footerAnim = useRef(new Animated.Value(0)).current;
+  const emailFocusAnim = useRef(new Animated.Value(0)).current;
+  const passwordFocusAnim = useRef(new Animated.Value(0)).current;
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const eyeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     GoogleSignin.configure({
       webClientId: '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com',
     });
   }, []);
+
+  useEffect(() => {
+    const curve = Easing.bezier(0.2, 0.8, 0.2, 1);
+    Animated.stagger(140, [
+      Animated.timing(heroAnim, {
+        toValue: 1,
+        duration: 480,
+        easing: curve,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardAnim, {
+        toValue: 1,
+        duration: 520,
+        easing: curve,
+        useNativeDriver: true,
+      }),
+      Animated.timing(footerAnim, {
+        toValue: 1,
+        duration: 460,
+        easing: curve,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [cardAnim, footerAnim, heroAnim]);
+
+  const animateFocus = (anim: Animated.Value, toValue: number) => {
+    Animated.timing(anim, {
+      toValue,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const togglePassword = () => {
+    const next = !showPassword;
+    setShowPassword(next);
+    Animated.timing(eyeAnim, {
+      toValue: next ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
 
   const enforceBlockIfNeeded = async (uid: string) => {
     try {
@@ -108,7 +160,22 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.hero}>
+          <Animated.View
+            style={[
+              styles.hero,
+              {
+                opacity: heroAnim,
+                transform: [
+                  {
+                    translateY: heroAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [12, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <View style={styles.logoRow}>
               <View style={styles.logoSquare}>
                 <FontAwesome5 name="toilet" size={18} color="#0B6E6B" />
@@ -130,32 +197,147 @@ export default function LoginScreen() {
                 <Text style={styles.chipText}>Under 1 minute</Text>
               </View>
             </View>
-          </View>
+          </Animated.View>
 
-          <View style={styles.card}>
+          <Animated.View
+            style={[
+              styles.card,
+              {
+                opacity: cardAnim,
+                transform: [
+                  {
+                    translateY: cardAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [16, 0],
+                    }),
+                  },
+                  {
+                    scale: cardAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.98, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <View style={styles.form}>
               <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="your@email.com"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                editable={!loading}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+              <Animated.View
+                style={[
+                  styles.inputWrap,
+                  {
+                    transform: [
+                      {
+                        translateY: emailFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -2],
+                        }),
+                      },
+                      {
+                        scale: emailFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.01],
+                        }),
+                      },
+                    ],
+                  },
+                  focusedField === 'email' && styles.inputWrapActive,
+                ]}
+              >
+                <TextInput
+                  style={styles.input}
+                  placeholder="your@email.com"
+                  placeholderTextColor="#999"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!loading}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  onFocus={() => {
+                    setFocusedField('email');
+                    animateFocus(emailFocusAnim, 1);
+                  }}
+                  onBlur={() => {
+                    setFocusedField(null);
+                    animateFocus(emailFocusAnim, 0);
+                  }}
+                />
+              </Animated.View>
 
               <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="********"
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                editable={!loading}
-              />
+              <Animated.View
+                style={[
+                  styles.inputWrap,
+                  {
+                    transform: [
+                      {
+                        translateY: passwordFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -2],
+                        }),
+                      },
+                      {
+                        scale: passwordFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.01],
+                        }),
+                      },
+                    ],
+                  },
+                  focusedField === 'password' && styles.inputWrapActive,
+                ]}
+              >
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    placeholder="********"
+                    placeholderTextColor="#999"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    editable={!loading}
+                    onFocus={() => {
+                      setFocusedField('password');
+                      animateFocus(passwordFocusAnim, 1);
+                    }}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      animateFocus(passwordFocusAnim, 0);
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeBtn}
+                    onPress={togglePassword}
+                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    <Animated.View
+                      style={{
+                        transform: [
+                          {
+                            scale: eyeAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 1.1],
+                            }),
+                          },
+                          {
+                            rotate: eyeAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0deg', '-8deg'],
+                            }),
+                          },
+                        ],
+                      }}
+                    >
+                      <FontAwesome5
+                        name={showPassword ? 'eye' : 'eye-slash'}
+                        size={16}
+                        color="#0B6E6B"
+                      />
+                    </Animated.View>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
 
               <TouchableOpacity
                 onPress={async () => {
@@ -186,14 +368,29 @@ export default function LoginScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
 
-          <View style={styles.footer}>
+          <Animated.View
+            style={[
+              styles.footer,
+              {
+                opacity: footerAnim,
+                transform: [
+                  {
+                    translateY: footerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [10, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <Text style={styles.footerText}>{"Don't have an account? "}</Text>
             <TouchableOpacity onPress={() => router.replace('/auth/signup')}>
               <Text style={styles.link}>Sign Up</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -277,9 +474,33 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginBottom: 20,
+    marginBottom: 0,
     fontSize: 14,
     backgroundColor: '#fff',
+  },
+  inputWrap: {
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  inputWrapActive: {
+    borderWidth: 1,
+    borderColor: '#0B6E6B',
+    backgroundColor: '#F6FBFA',
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 0,
+    paddingVertical: 14,
+    backgroundColor: 'transparent',
+  },
+  eyeBtn: {
+    paddingLeft: 8,
+    paddingVertical: 10,
   },
   forgotPassword: {
     color: '#F6B22F',

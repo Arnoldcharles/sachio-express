@@ -144,32 +144,40 @@ export default function RentScreen() {
   ]);
 
   useEffect(() => {
-    if (!auth.currentUser) {
-      Alert.alert('Sign in required', 'Please log in to book a toilet.', [
-        { text: 'OK', onPress: () => router.push('/auth/login') },
-      ]);
-      return;
-    }
-    if (id) {
-      getProducts()
-        .then((list) => {
-          const found = list.find((p) => String(p.id) === String(id));
-          if (found?.title) setProductTitle(found.title);
-        })
-        .catch(() => {});
-    }
-    getUserProfile(auth.currentUser.uid)
-      .then((profile: any) => {
-        if (profile) {
+    let active = true;
+    const bootstrap = async () => {
+      const storedUserId = await AsyncStorage.getItem('userToken');
+      const uid = auth.currentUser?.uid || storedUserId;
+      if (!uid) {
+        Alert.alert('Sign in required', 'Please log in to book a toilet.', [
+          { text: 'OK', onPress: () => router.push('/auth/login') },
+        ]);
+        return;
+      }
+      if (id) {
+        getProducts()
+          .then((list) => {
+            const found = list.find((p) => String(p.id) === String(id));
+            if (found?.title && active) setProductTitle(found.title);
+          })
+          .catch(() => {});
+      }
+      getUserProfile(uid)
+        .then((profile: any) => {
+          if (!active || !profile) return;
           if (profile.name) setName(profile.name);
           if (profile.phone) setPhone(profile.phone);
-        }
-      })
-      .catch(() => {});
-    if (auth.currentUser?.email) {
-      setEmail(auth.currentUser.email);
-    }
-  }, [router]);
+        })
+        .catch(() => {});
+      if (auth.currentUser?.email && active) {
+        setEmail(auth.currentUser.email);
+      }
+    };
+    bootstrap();
+    return () => {
+      active = false;
+    };
+  }, [router, id]);
 
   const submit = () => {
     if (!canSubmit) {
@@ -181,12 +189,15 @@ export default function RentScreen() {
 
   const createRentOrder = async () => {
     try {
-      if (!auth.currentUser) {
-        Alert.alert('Sign in required', 'Please log in to book.', [{ text: 'OK', onPress: () => router.push('/auth/login') }]);
+      const storedUserId = await AsyncStorage.getItem('userToken');
+      if (!auth.currentUser && !storedUserId) {
+        Alert.alert('Sign in required', 'Please log in to book.', [
+          { text: 'OK', onPress: () => router.push('/auth/login') },
+        ]);
         return;
       }
       const endDate = addDays(eventDate, parseInt(duration || '1', 10) || 1);
-      const userId = auth.currentUser?.uid || (await AsyncStorage.getItem('userToken')) || 'guest';
+      const userId = auth.currentUser?.uid || storedUserId || 'guest';
       const orderData = {
         productId: id || null,
         productTitle: productTitle || (id ? `Rental for ${id}` : "Toilet rental"),

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text as RNText,
@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -34,7 +35,7 @@ import {
   Product,
   Category,
 } from "../../lib/products";
-import { db } from "../../lib/firebase";
+import { auth, db } from "../../lib/firebase";
 
 const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: "Nunito" }, props.style]} />
@@ -191,10 +192,39 @@ export default function HomeScreen() {
   }>({ type: null });
   const rentish = (val?: string | null) =>
     !!val && val.toLowerCase().includes("rent");
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const searchAnim = useRef(new Animated.Value(0)).current;
+  const categoriesAnim = useRef(new Animated.Value(0)).current;
+  const contentAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    Animated.stagger(120, [
+      Animated.timing(headerAnim, {
+        toValue: 1,
+        duration: 420,
+        useNativeDriver: true,
+      }),
+      Animated.timing(searchAnim, {
+        toValue: 1,
+        duration: 420,
+        useNativeDriver: true,
+      }),
+      Animated.timing(categoriesAnim, {
+        toValue: 1,
+        duration: 420,
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentAnim, {
+        toValue: 1,
+        duration: 520,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [categoriesAnim, contentAnim, headerAnim, searchAnim]);
 
   useEffect(() => {
     applyFilter(selectedCategory, search);
@@ -256,6 +286,16 @@ export default function HomeScreen() {
       .then((uid) => setUserId(uid))
       .catch(() => setUserId(null));
   }, []);
+
+  useEffect(() => {
+    if (!auth || typeof auth.onAuthStateChanged !== "function") return;
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      if (user?.uid) {
+        setUserId(user.uid);
+      }
+    });
+    return () => unsubAuth();
+  }, [userId]);
 
   const loadCartCount = useCallback(async () => {
     const raw = await AsyncStorage.getItem(CART_KEY);
@@ -414,8 +454,11 @@ export default function HomeScreen() {
         rentEventDate,
         parseInt(rentDuration || "1", 10) || 1
       );
-      const uid =
-        userId || (await AsyncStorage.getItem("userToken")) || "guest";
+      const uid = userId || (await AsyncStorage.getItem("userToken"));
+      if (!uid) {
+        Alert.alert("Login required", "Please sign in to place a rental.");
+        return;
+      }
       const orderData = {
         productId: null,
         productTitle: "Rental Request",
@@ -653,7 +696,22 @@ export default function HomeScreen() {
           />
         }
       >
-        <View style={styles.headerBar}>
+        <Animated.View
+          style={[
+            styles.headerBar,
+            {
+              opacity: headerAnim,
+              transform: [
+                {
+                  translateY: headerAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [14, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <View>
             <Text style={styles.headerTitle}>
               Premium quality mobile toilets for your events
@@ -673,11 +731,13 @@ export default function HomeScreen() {
               >
                 <FontAwesome5 name="shopping-cart" size={14} color="#0B6E6B" />
               </TouchableOpacity>
-              {cartCount > 0 ? (
+              {
+              cartCount > 0 ? (
                 <View style={styles.cartBadge}>
                   <Text style={styles.cartBadgeText}>{cartCount}</Text>
                 </View>
-              ) : null}
+              ) : null
+            }
             </View>
             <TouchableOpacity
               style={styles.avatarBtn}
@@ -686,42 +746,87 @@ export default function HomeScreen() {
               <FontAwesome5 name="user" size={14} color="#0B6E6B" />
             </TouchableOpacity>
           </View>
-        </View>
-
-        <View style={styles.searchBar}>
+        </Animated.View>
+        <Animated.View
+          style={[
+            styles.searchBar,
+            {
+              opacity: searchAnim,
+              transform: [
+                {
+                  translateY: searchAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [12, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <FontAwesome5 name="search" size={14} color="#94a3b8" />
           <TextInput
-            placeholder="Search for products……"
+            placeholder="Search for products�?I�?I"
             placeholderTextColor="#94a3b8"
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
           />
-        </View>
+        </Animated.View>
 
-        <Text style={styles.sectionTitle}>Categories</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
+        <Animated.View
+          style={[
+            {
+              opacity: categoriesAnim,
+              transform: [
+                {
+                  translateY: categoriesAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [10, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
-          <CategoryChip
-            label="All"
-            active={selectedCategory === "All"}
-            onPress={() => setSelectedCategory("All")}
-          />
-          {categories.map((cat) => (
+          <Text style={styles.sectionTitle}>Categories</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRow}
+          >
             <CategoryChip
-              key={cat.id}
-              label={cat.name}
-              active={selectedCategory === cat.name}
-              onPress={() => setSelectedCategory(cat.name)}
+              label="All"
+              active={selectedCategory === "All"}
+              onPress={() => setSelectedCategory("All")}
             />
-          ))}
-        </ScrollView>
+            {categories.map((cat) => (
+              <CategoryChip
+                key={cat.id}
+                label={cat.name}
+                active={selectedCategory === cat.name}
+                onPress={() => setSelectedCategory(cat.name)}
+              />
+            ))}
+          </ScrollView>
+        </Animated.View>
 
         {!loading && showRentForm ? (
-          <View style={styles.rentForm}>
+          <Animated.View
+          style={[
+            styles.rentForm,
+            {
+              opacity: contentAnim,
+              transform: [
+                {
+                  translateY: contentAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [14, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
             <Text style={styles.rentTitle}>Rental Request</Text>
             <Text style={styles.rentSubtitle}>
               Fill out the form and we will get back to you.
@@ -903,7 +1008,7 @@ export default function HomeScreen() {
             >
               <Text style={styles.submitText}>Submit Request</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         ) : null}
 
         {loading ? (
@@ -912,27 +1017,43 @@ export default function HomeScreen() {
             <Text style={styles.loadingText}>Loading toilets…</Text>
           </View>
         ) : showRentForm ? null : (
-          <FlatList
-            data={featured}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderCard}
-            numColumns={2}
-            columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-            contentContainerStyle={{
-              gap: 12,
-              paddingVertical: 12,
-              paddingBottom: 32,
-            }}
-            scrollEnabled={false}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>No products found</Text>
-                <Text style={styles.emptyBody}>
-                  Try adjusting your filters or search.
-                </Text>
-              </View>
-            }
-          />
+          <Animated.View
+            style={[
+              {
+                opacity: contentAnim,
+                transform: [
+                  {
+                    translateY: contentAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [14, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <FlatList
+              data={featured}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={renderCard}
+              numColumns={2}
+              columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+              contentContainerStyle={{
+                gap: 12,
+                paddingVertical: 12,
+                paddingBottom: 32,
+              }}
+              scrollEnabled={false}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>No products found</Text>
+                  <Text style={styles.emptyBody}>
+                    Try adjusting your filters or search.
+                  </Text>
+                </View>
+              }
+            />
+          </Animated.View>
         )}
       </ScrollView>
 
@@ -998,7 +1119,7 @@ export default function HomeScreen() {
                 style={styles.closeBtn}
                 accessibilityRole="button"
               >
-                <Text style={styles.closeBtnText}>✕</Text>
+                <Text style={styles.closeBtnText}>x</Text>
               </TouchableOpacity>
             </View>
             <Text style={styles.announcementMessage}>
@@ -1395,5 +1516,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   paymentBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, StatusBar, KeyboardAvoidingView, Platform, Animated, Easing } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/Button';
@@ -18,12 +18,83 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const cardAnim = useRef(new Animated.Value(0)).current;
+  const footerAnim = useRef(new Animated.Value(0)).current;
+  const fullNameFocusAnim = useRef(new Animated.Value(0)).current;
+  const emailFocusAnim = useRef(new Animated.Value(0)).current;
+  const phoneFocusAnim = useRef(new Animated.Value(0)).current;
+  const passwordFocusAnim = useRef(new Animated.Value(0)).current;
+  const confirmFocusAnim = useRef(new Animated.Value(0)).current;
+  const strengthAnim = useRef(new Animated.Value(0)).current;
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const eyeAnim = useRef(new Animated.Value(0)).current;
+  const confirmEyeAnim = useRef(new Animated.Value(0)).current;
+  const [focusedField, setFocusedField] = useState<
+    'fullName' | 'email' | 'phone' | 'password' | 'confirm' | null
+  >(null);
 
   useEffect(() => {
     GoogleSignin.configure({
       webClientId: '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com',
     });
   }, []);
+
+  useEffect(() => {
+    const curve = Easing.bezier(0.2, 0.8, 0.2, 1);
+    Animated.stagger(140, [
+      Animated.timing(headerAnim, {
+        toValue: 1,
+        duration: 480,
+        easing: curve,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardAnim, {
+        toValue: 1,
+        duration: 520,
+        easing: curve,
+        useNativeDriver: true,
+      }),
+      Animated.timing(footerAnim, {
+        toValue: 1,
+        duration: 460,
+        easing: curve,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [cardAnim, footerAnim, headerAnim]);
+
+  const animateFocus = (anim: Animated.Value, toValue: number) => {
+    Animated.timing(anim, {
+      toValue,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const togglePassword = () => {
+    const next = !showPassword;
+    setShowPassword(next);
+    Animated.timing(eyeAnim, {
+      toValue: next ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const toggleConfirmPassword = () => {
+    const next = !showConfirmPassword;
+    setShowConfirmPassword(next);
+    Animated.timing(confirmEyeAnim, {
+      toValue: next ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
 
   const passwordScore = useMemo(() => {
     let score = 0;
@@ -35,6 +106,15 @@ export default function SignupScreen() {
   }, [password]);
 
   const passwordStrong = passwordScore >= 3;
+
+  useEffect(() => {
+    Animated.timing(strengthAnim, {
+      toValue: passwordScore,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [passwordScore, strengthAnim]);
 
   const handleSignup = async () => {
     if (!fullName || !email || !phone || !password || !confirmPassword) {
@@ -111,7 +191,22 @@ export default function SignupScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
+          <Animated.View
+            style={[
+              styles.header,
+              {
+                opacity: headerAnim,
+                transform: [
+                  {
+                    translateY: headerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [12, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <View style={styles.badge}>
               <Text style={styles.badgeText}>Sachio</Text>
             </View>
@@ -127,73 +222,353 @@ export default function SignupScreen() {
                 <Text style={styles.pillText}>Secure</Text>
               </View>
             </View>
-          </View>
+          </Animated.View>
 
-          <View style={styles.card}>
+          <Animated.View
+            style={[
+              styles.card,
+              {
+                opacity: cardAnim,
+                transform: [
+                  {
+                    translateY: cardAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [16, 0],
+                    }),
+                  },
+                  {
+                    scale: cardAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.98, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <View style={styles.form}>
               <Text style={styles.label}>Full Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="John Doe"
-                placeholderTextColor="#999"
-                value={fullName}
-                onChangeText={setFullName}
-                editable={!loading}
-              />
+              <Animated.View
+                style={[
+                  styles.inputWrap,
+                  {
+                    transform: [
+                      {
+                        translateY: fullNameFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -2],
+                        }),
+                      },
+                      {
+                        scale: fullNameFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.01],
+                        }),
+                      },
+                    ],
+                  },
+                  focusedField === 'fullName' && styles.inputWrapActive,
+                ]}
+              >
+                <TextInput
+                  style={styles.input}
+                  placeholder="John Doe"
+                  placeholderTextColor="#999"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  editable={!loading}
+                  onFocus={() => {
+                    setFocusedField('fullName');
+                    animateFocus(fullNameFocusAnim, 1);
+                  }}
+                  onBlur={() => {
+                    setFocusedField(null);
+                    animateFocus(fullNameFocusAnim, 0);
+                  }}
+                />
+              </Animated.View>
 
               <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="your@email.com"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                editable={!loading}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+              <Animated.View
+                style={[
+                  styles.inputWrap,
+                  {
+                    transform: [
+                      {
+                        translateY: emailFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -2],
+                        }),
+                      },
+                      {
+                        scale: emailFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.01],
+                        }),
+                      },
+                    ],
+                  },
+                  focusedField === 'email' && styles.inputWrapActive,
+                ]}
+              >
+                <TextInput
+                  style={styles.input}
+                  placeholder="your@email.com"
+                  placeholderTextColor="#999"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!loading}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  onFocus={() => {
+                    setFocusedField('email');
+                    animateFocus(emailFocusAnim, 1);
+                  }}
+                  onBlur={() => {
+                    setFocusedField(null);
+                    animateFocus(emailFocusAnim, 0);
+                  }}
+                />
+              </Animated.View>
 
               <Text style={styles.label}>Phone Number</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="+234 800 000 0000"
-                placeholderTextColor="#999"
-                value={phone}
-                onChangeText={setPhone}
-                editable={!loading}
-                keyboardType="phone-pad"
-              />
+              <Animated.View
+                style={[
+                  styles.inputWrap,
+                  {
+                    transform: [
+                      {
+                        translateY: phoneFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -2],
+                        }),
+                      },
+                      {
+                        scale: phoneFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.01],
+                        }),
+                      },
+                    ],
+                  },
+                  focusedField === 'phone' && styles.inputWrapActive,
+                ]}
+              >
+                <TextInput
+                  style={styles.input}
+                  placeholder="+234 800 000 0000"
+                  placeholderTextColor="#999"
+                  value={phone}
+                  onChangeText={setPhone}
+                  editable={!loading}
+                  keyboardType="phone-pad"
+                  onFocus={() => {
+                    setFocusedField('phone');
+                    animateFocus(phoneFocusAnim, 1);
+                  }}
+                  onBlur={() => {
+                    setFocusedField(null);
+                    animateFocus(phoneFocusAnim, 0);
+                  }}
+                />
+              </Animated.View>
 
               <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="********"
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                editable={!loading}
-              />
+              <Animated.View
+                style={[
+                  styles.inputWrap,
+                  {
+                    transform: [
+                      {
+                        translateY: passwordFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -2],
+                        }),
+                      },
+                      {
+                        scale: passwordFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.01],
+                        }),
+                      },
+                    ],
+                  },
+                  focusedField === 'password' && styles.inputWrapActive,
+                ]}
+              >
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    placeholder="********"
+                    placeholderTextColor="#999"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    editable={!loading}
+                    onFocus={() => {
+                      setFocusedField('password');
+                      animateFocus(passwordFocusAnim, 1);
+                    }}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      animateFocus(passwordFocusAnim, 0);
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeBtn}
+                    onPress={togglePassword}
+                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    <Animated.View
+                      style={{
+                        transform: [
+                          {
+                            scale: eyeAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 1.1],
+                            }),
+                          },
+                          {
+                            rotate: eyeAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0deg', '-8deg'],
+                            }),
+                          },
+                        ],
+                      }}
+                    >
+                      <FontAwesome5
+                        name={showPassword ? 'eye' : 'eye-slash'}
+                        size={16}
+                        color="#0B6E6B"
+                      />
+                    </Animated.View>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
               <View style={styles.strengthRow}>
-                <View style={[styles.strengthDot, passwordScore >= 1 && styles.strengthDotActive]} />
-                <View style={[styles.strengthDot, passwordScore >= 2 && styles.strengthDotActive]} />
-                <View style={[styles.strengthDot, passwordScore >= 3 && styles.strengthDotActive]} />
-                <View style={[styles.strengthDot, passwordScore >= 4 && styles.strengthDotActive]} />
+                <Animated.View
+                  style={[
+                    styles.strengthDot,
+                    {
+                      backgroundColor: strengthAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['#e5e7eb', '#0B6E6B'],
+                      }),
+                    },
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.strengthDot,
+                    {
+                      backgroundColor: strengthAnim.interpolate({
+                        inputRange: [1, 2],
+                        outputRange: ['#e5e7eb', '#0B6E6B'],
+                      }),
+                    },
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.strengthDot,
+                    {
+                      backgroundColor: strengthAnim.interpolate({
+                        inputRange: [2, 3],
+                        outputRange: ['#e5e7eb', '#0B6E6B'],
+                      }),
+                    },
+                  ]}
+                />
+                <Animated.View
+                  style={[
+                    styles.strengthDot,
+                    {
+                      backgroundColor: strengthAnim.interpolate({
+                        inputRange: [3, 4],
+                        outputRange: ['#e5e7eb', '#0B6E6B'],
+                      }),
+                    },
+                  ]}
+                />
                 <Text style={styles.strengthText}>
                   {passwordStrong ? 'Strong password' : 'Add 8+ chars, uppercase, number, symbol'}
                 </Text>
               </View>
 
               <Text style={styles.label}>Confirm Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="********"
-                placeholderTextColor="#999"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                editable={!loading}
-              />
+              <Animated.View
+                style={[
+                  styles.inputWrap,
+                  {
+                    transform: [
+                      {
+                        translateY: confirmFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -2],
+                        }),
+                      },
+                      {
+                        scale: confirmFocusAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.01],
+                        }),
+                      },
+                    ],
+                  },
+                  focusedField === 'confirm' && styles.inputWrapActive,
+                ]}
+              >
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    placeholder="********"
+                    placeholderTextColor="#999"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    editable={!loading}
+                    onFocus={() => {
+                      setFocusedField('confirm');
+                      animateFocus(confirmFocusAnim, 1);
+                    }}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      animateFocus(confirmFocusAnim, 0);
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeBtn}
+                    onPress={toggleConfirmPassword}
+                    accessibilityLabel={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    <Animated.View
+                      style={{
+                        transform: [
+                          {
+                            scale: confirmEyeAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 1.1],
+                            }),
+                          },
+                          {
+                            rotate: confirmEyeAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0deg', '-8deg'],
+                            }),
+                          },
+                        ],
+                      }}
+                    >
+                      <FontAwesome5
+                        name={showConfirmPassword ? 'eye' : 'eye-slash'}
+                        size={16}
+                        color="#0B6E6B"
+                      />
+                    </Animated.View>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
 
               <Text style={styles.termsText}>
                 By signing up, you agree to our{' '}
@@ -217,14 +592,29 @@ export default function SignupScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
 
-          <View style={styles.footer}>
+          <Animated.View
+            style={[
+              styles.footer,
+              {
+                opacity: footerAnim,
+                transform: [
+                  {
+                    translateY: footerAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [10, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <Text style={styles.footerText}>Already have an account? </Text>
             <TouchableOpacity onPress={() => router.replace('/auth/login')}>
               <Text style={styles.footerLink}>Sign In</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -314,7 +704,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 16,
+    marginBottom: 0,
   },
   strengthDot: {
     width: 10,
@@ -344,9 +734,33 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginBottom: 16,
+    marginBottom: 0,
     fontSize: 14,
     backgroundColor: '#fff',
+  },
+  inputWrap: {
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  inputWrapActive: {
+    borderWidth: 1,
+    borderColor: '#0B6E6B',
+    backgroundColor: '#F6FBFA',
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 0,
+    paddingVertical: 14,
+    backgroundColor: 'transparent',
+  },
+  eyeBtn: {
+    paddingLeft: 8,
+    paddingVertical: 10,
   },
   termsText: {
     fontSize: 12,

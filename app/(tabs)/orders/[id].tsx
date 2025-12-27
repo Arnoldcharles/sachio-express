@@ -5,6 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -41,6 +44,7 @@ export default function OrderDetail() {
   const [currentUser, setCurrentUser] = useState<FirebaseAuthTypes.User | null>(
     auth.currentUser
   );
+  const [showItems, setShowItems] = useState(false);
 
   useEffect(() => {
     if (!auth || typeof auth.onAuthStateChanged !== "function") return;
@@ -129,13 +133,19 @@ export default function OrderDetail() {
   const itemNames = (order?.items || [])
     .map((item) => item.title)
     .filter((title): title is string => !!title);
-  const itemLabel = order?.productTitle
-    ? order.productTitle
-    : itemNames.length > 2
-    ? `${itemNames.slice(0, 2).join(", ")} +${itemNames.length - 2} more`
-    : itemNames.length > 0
-    ? itemNames.join(", ")
-    : "N/A";
+  const truncate = (value: string, max = 22) =>
+    value.length > max ? `${value.slice(0, max - 3)}...` : value;
+  const shortNames = itemNames.map((name) => truncate(name));
+  const itemLabel =
+    itemNames.length > 2
+      ? `${shortNames.slice(0, 2).join(", ")} +${
+          itemNames.length - 2
+        } more`
+      : itemNames.length > 0
+      ? shortNames.join(", ")
+      : order?.productTitle
+      ? truncate(order.productTitle, 32)
+      : "N/A";
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -182,6 +192,14 @@ export default function OrderDetail() {
             <Text style={styles.orderId}>Order #{String(id).slice(0, 6)}</Text>
             <Text style={styles.label}>Item</Text>
             <Text style={styles.value}>{itemLabel}</Text>
+            {itemNames.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => setShowItems(true)}
+                style={styles.itemsToggle}
+              >
+                <Text style={styles.itemsToggleText}>View items</Text>
+              </TouchableOpacity>
+            ) : null}
             <Text style={styles.label}>Status</Text>
             <Text style={styles.value}>{order.status || "N/A"}</Text>
             <Text style={styles.label}>Type</Text>
@@ -228,6 +246,48 @@ export default function OrderDetail() {
           </View>
         )}
       </View>
+
+      {showItems ? (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowItems(false)}
+        >
+          <Pressable
+            style={styles.itemsBackdrop}
+            onPress={() => setShowItems(false)}
+          >
+            <Pressable style={styles.itemsModal} onPress={() => {}}>
+              <View style={styles.itemsModalHeader}>
+                <Text style={styles.itemsModalTitle}>Items</Text>
+                <TouchableOpacity
+                  onPress={() => setShowItems(false)}
+                  style={styles.itemsCloseIcon}
+                >
+                  <FontAwesome5 name="times" size={14} color="#0B6E6B" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.itemsListWrap}>
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {itemNames.map((name, index) => (
+                    <View key={`${name}-${index}`} style={styles.itemsRow}>
+                      <Text style={styles.itemsBullet}>•</Text>
+                      <Text style={styles.itemsModalItem}>{name}</Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+              <TouchableOpacity
+                style={styles.itemsCloseBtn}
+                onPress={() => setShowItems(false)}
+              >
+                <Text style={styles.itemsCloseText}>Close</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -257,6 +317,66 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 12, color: "#475569", marginTop: 6 },
   value: { fontSize: 14, color: "#0F172A", fontWeight: "700" },
+  itemsToggle: { marginTop: 6, alignSelf: "flex-start" },
+  itemsToggleText: { color: "#0B6E6B", fontWeight: "700", fontSize: 12 },
+  itemsBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  itemsModal: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  itemsModalTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0B6E6B",
+    marginBottom: 10,
+  },
+  itemsModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  itemsCloseIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#E6F4F3",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#D1E7E5",
+  },
+  itemsListWrap: { maxHeight: 260 },
+  itemsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginBottom: 6,
+  },
+  itemsBullet: { fontSize: 16, color: "#0B6E6B", lineHeight: 20 },
+  itemsModalItem: { fontSize: 14, color: "#0F172A", marginBottom: 6 },
+  itemsCloseBtn: {
+    marginTop: 12,
+    backgroundColor: "#0B6E6B",
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  itemsCloseText: { color: "#fff", fontWeight: "700" },
   timeline: {
     flexDirection: "row",
     justifyContent: "space-between",
