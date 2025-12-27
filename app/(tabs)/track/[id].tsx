@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { useTheme } from '../../../lib/theme';
 
 const mockDeliveries = [
   { id: '1', status: 'in_transit', driver: 'John Okafor', eta: '2 hours', orderNum: '12345' },
@@ -12,10 +13,12 @@ const mockDeliveries = [
 export default function TrackDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const delivery = useMemo(() => mockDeliveries.find(d => d.id === id) || null, [id]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 6, marginRight: 8 }}>

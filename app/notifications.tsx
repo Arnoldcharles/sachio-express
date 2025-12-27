@@ -7,9 +7,11 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../lib/theme';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { auth, db } from '../lib/firebase';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
@@ -56,6 +58,7 @@ function timeAgo(date?: Date) {
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [notes, setNotes] = useState<OrderNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
@@ -81,7 +84,7 @@ export default function NotificationsPage() {
       q,
       (snap) => {
         const list: OrderNote[] = [];
-        snap.forEach((docSnap) => {
+        snap.forEach((docSnap: any) => {
           list.push({ id: docSnap.id, ...(docSnap.data() as any) });
         });
         setNotes(list.slice(0, 50));
@@ -136,7 +139,8 @@ export default function NotificationsPage() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 6, marginRight: 8 }}>
           <FontAwesome5 name="arrow-left" size={18} color="#0B6E6B" />

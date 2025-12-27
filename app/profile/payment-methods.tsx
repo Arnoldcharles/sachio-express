@@ -237,24 +237,32 @@ export default function PaymentMethods() {
                 value={newLabel}
                 onChangeText={setNewLabel}
                 placeholder="e.g., Business card"
+                styles={styles}
+                colors={colors}
               />
               <Field
                 label="Brand"
                 value={newBrand}
                 onChangeText={setNewBrand}
                 placeholder="Visa / Mastercard"
+                styles={styles}
+                colors={colors}
               />
               <Field
                 label="Last 4 digits"
                 value={newLast4}
                 onChangeText={setNewLast4}
                 placeholder="1234"
+                styles={styles}
+                colors={colors}
               />
               <Field
                 label="Expiry"
                 value={newExp}
                 onChangeText={setNewExp}
                 placeholder="09/28"
+                styles={styles}
+                colors={colors}
               />
               <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
                 <TouchableOpacity
@@ -309,24 +317,32 @@ export default function PaymentMethods() {
                 value={newLabel}
                 onChangeText={setNewLabel}
                 placeholder="e.g., Business card"
+                styles={styles}
+                colors={colors}
               />
               <Field
                 label="Brand"
                 value={newBrand}
                 onChangeText={setNewBrand}
                 placeholder="Visa / Mastercard"
+                styles={styles}
+                colors={colors}
               />
               <Field
                 label="Last 4 digits"
                 value={newLast4}
                 onChangeText={setNewLast4}
                 placeholder="1234"
+                styles={styles}
+                colors={colors}
               />
               <Field
                 label="Expiry"
                 value={newExp}
                 onChangeText={setNewExp}
                 placeholder="09/28"
+                styles={styles}
+                colors={colors}
               />
               <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
                 <TouchableOpacity
@@ -362,10 +378,10 @@ export default function PaymentMethods() {
   );
 }
 
-function Field({ label, value, onChangeText, placeholder }: any) {
+function Field({ label, value, onChangeText, placeholder, styles, colors }: any) {
   return (
     <View style={{ width: "100%", marginBottom: 10 }}>
-      <Text style={{ fontWeight: "600", marginBottom: 4, color: "#1E293B" }}>
+      <Text style={{ fontWeight: "600", marginBottom: 4, color: colors.text }}>
         {label}
       </Text>
       <TextInput

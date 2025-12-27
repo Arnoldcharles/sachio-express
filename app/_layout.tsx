@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Animated, Text, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ToastProvider } from "../components/Toast";
 import { useFonts } from "expo-font";
@@ -26,6 +26,12 @@ function RootLayoutInner() {
     TextInputAny.defaultProps.style = [
       { fontFamily: "Nunito", color: colors.text },
       TextInputAny.defaultProps.style,
+    ];
+    const AnimatedTextAny = Animated.Text as unknown as { defaultProps?: { style?: any } };
+    AnimatedTextAny.defaultProps = AnimatedTextAny.defaultProps || {};
+    AnimatedTextAny.defaultProps.style = [
+      { fontFamily: "Nunito", color: colors.text },
+      AnimatedTextAny.defaultProps.style,
     ];
   }
 

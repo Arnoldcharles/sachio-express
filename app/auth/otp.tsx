@@ -7,7 +7,8 @@ import { useTheme } from '../../lib/theme';
 
 export default function OtpScreen() {
   const router = useRouter();
-  const { colors, isDark } = useTheme();\n  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams() as any;
   const { email, phone } = params || {};
   const [otp, setOtp] = useState('');
@@ -211,6 +212,18 @@ const createStyles = (colors: any) =>
       color: colors.primary,
       textAlign: 'center',
     },
+    footer: {
+      marginTop: 12,
+      gap: 8,
+      alignItems: 'center',
+    },
+    helperText: {
+      fontSize: 12,
+      color: colors.muted,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
   });
+
 
 

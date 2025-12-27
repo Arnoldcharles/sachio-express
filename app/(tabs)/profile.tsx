@@ -12,27 +12,21 @@ const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
 );
 
-function Header({ title }: { title: string }) {
-  return (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>{title}</Text>
-    </View>
-  );
-}
-
-function CustomButton({ title, onPress, style }: { title: string; onPress: () => void; style?: any }) {
-  return (
-    <TouchableOpacity onPress={onPress} style={[styles.button, style]}>
-      <Text style={styles.buttonText}>{title}</Text>
-    </TouchableOpacity>
-  );
-}
-
 export default function ProfileTab() {
   const router = useRouter();
   const { show } = useToast();
   const { colors, isDark, preference, setPreference } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const Header = ({ title }: { title: string }) => (
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>{title}</Text>
+    </View>
+  );
+  const CustomButton = ({ title, onPress, style }: { title: string; onPress: () => void; style?: any }) => (
+    <TouchableOpacity onPress={onPress} style={[styles.button, style]}>
+      <Text style={styles.buttonText}>{title}</Text>
+    </TouchableOpacity>
+  );
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>({ name: '', email: '', phone: '', addresses: [] });
   const [editModalVisible, setEditModalVisible] = useState(false);

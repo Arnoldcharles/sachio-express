@@ -350,18 +350,6 @@ export default function ProductPage() {
           >
               <Text style={styles.ctaText}>{inCart ? "In Cart" : "Purchase"}</Text>
             </TouchableOpacity>
-            {isRentProduct ? null : (
-              <TouchableOpacity
-                style={[styles.ctaButton, styles.rentBtn, outOfStock && styles.buttonDisabled]}
-                disabled={outOfStock}
-                onPress={() => {
-                  if (outOfStock) return;
-                  router.push(`/rent?id=${product.id}`);
-                }}
-              >
-                <Text style={styles.ctaText}>Book Toilet</Text>
-              </TouchableOpacity>
-            )}
           </View>
 
           {/* Share */}
@@ -536,12 +524,6 @@ export default function ProductPage() {
     marginTop: 6,
     textAlign: "center",
   },
-  relatedPrice: {
-    fontSize: 12,
-    color: "#475569",
-    marginTop: 2,
-    textAlign: "center",
-  },
   actionsVertical: {
     flexDirection: "column",
     gap: 14,
@@ -658,21 +640,6 @@ export default function ProductPage() {
     flexDirection: "row",
     gap: 10,
     justifyContent: "center",
-  },
-  ctaButton: {
-    flex: 1,
-    backgroundColor: "#0B6E6B",
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 6,
-  },
-  ctaText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 15,
   },
   spacerBottom: {
     height: 80,

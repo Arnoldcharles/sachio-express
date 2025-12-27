@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text as RNText, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text as RNText, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, StatusBar } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db, firebaseConfig } from '../lib/firebase';
 import { WebView } from 'react-native-webview';
 import axios from 'axios';
+import { useTheme } from '../lib/theme';
 
 const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
@@ -28,6 +29,7 @@ type OrderDoc = {
 export default function OrderPage() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [order, setOrder] = useState<OrderDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [payUrl, setPayUrl] = useState<string | null>(null);
@@ -127,11 +129,12 @@ export default function OrderPage() {
 
   if (payUrl) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         <View style={{ padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: '#0B6E6B' }}>Flutterwave Payment</Text>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: colors.primary }}>Flutterwave Payment</Text>
           <TouchableOpacity onPress={() => setPayUrl(null)}>
-            <Text style={{ color: '#EF4444', fontWeight: '700' }}>Close</Text>
+            <Text style={{ color: colors.danger, fontWeight: '700' }}>Close</Text>
           </TouchableOpacity>
         </View>
         <WebView
@@ -145,7 +148,8 @@ export default function OrderPage() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
         <Text style={styles.backBtnText}>‹ Go back</Text>
       </TouchableOpacity>

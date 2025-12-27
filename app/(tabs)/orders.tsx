@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text as RNText, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Animated, Easing } from 'react-native';
+import { View, Text as RNText, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Animated, Easing, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -24,20 +24,9 @@ type OrderItem = {
   amount?: number | string;
 };
 
-// Inline Header
-function Header({ title }: any) {
-  return (
-    <View style={styles.header}>
-      <View style={{ width: 20 }} />
-      <Text style={styles.headerTitle}>{title}</Text>
-      <View style={{ width: 20 }} />
-    </View>
-  );
-}
-
 export default function OrdersTab() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [activeTab, setActiveTab] = useState<'active' | 'past' | 'cancelled'>('active');
   const [orders, setOrders] = useState<OrderItem[]>([]);
@@ -257,6 +246,7 @@ export default function OrdersTab() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.container}>
         <Animated.View
           style={[
@@ -273,7 +263,11 @@ export default function OrdersTab() {
             },
           ]}
         >
-          <Header title="Orders" />
+          <View style={styles.header}>
+            <View style={{ width: 20 }} />
+            <Text style={styles.headerTitle}>Orders</Text>
+            <View style={{ width: 20 }} />
+          </View>
           <View style={styles.tabsContainer}>
             {['active', 'past', 'cancelled'].map((tab) => (
               <TouchableOpacity

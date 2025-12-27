@@ -8,6 +8,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -15,6 +16,7 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import { auth, db } from "../../../lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import type { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import { useTheme } from "../../../lib/theme";
 
 const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: "Nunito" }, props.style]} />
@@ -38,6 +40,7 @@ type OrderDoc = {
 export default function OrderDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [order, setOrder] = useState<OrderDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
@@ -148,7 +151,8 @@ export default function OrderDetail() {
       : "N/A";
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity

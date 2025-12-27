@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator, RefreshControl, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { auth, db } from '../../lib/firebase';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { useRef } from 'react';
+import { useTheme } from '../../lib/theme';
 
 type OrderDoc = {
   id: string;
@@ -45,6 +46,7 @@ function Header({ title, onPressNotifications, badgeCount }: any) {
 
 export default function TrackTab() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [activeOrders, setActiveOrders] = useState<OrderDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
@@ -188,7 +190,8 @@ export default function TrackTab() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
