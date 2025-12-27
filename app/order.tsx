@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text as RNText, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, StatusBar } from 'react-native';
+import { View, Text as RNText, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, StatusBar, Animated, Easing } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, firebaseConfig } from '../lib/firebase';
 import { WebView } from 'react-native-webview';
 import axios from 'axios';
@@ -24,7 +24,11 @@ type OrderDoc = {
   note?: string;
   reference?: string | null;
   paymentStatus?: string;
+  priceSetAt?: { seconds: number; nanoseconds: number };
+  expiresAt?: { seconds: number; nanoseconds: number };
 };
+
+const REACTIVATION_MS = 24 * 60 * 60 * 1000;
 
 export default function OrderPage() {
   const { id } = useLocalSearchParams();
@@ -35,16 +39,70 @@ export default function OrderPage() {
   const [payUrl, setPayUrl] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [txRef, setTxRef] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const webviewRef = useRef<WebView>(null);
+  const expirySeeded = useRef(false);
+  const timerPulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!isDark) {
+      timerPulse.setValue(0);
+      return;
+    }
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(timerPulse, {
+          toValue: 1,
+          duration: 2400,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(timerPulse, {
+          toValue: 0,
+          duration: 2400,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [isDark, timerPulse]);
+
+  const getMillis = (timestamp?: { seconds?: number } | Date | null) => {
+    if (!timestamp) return null;
+    if (timestamp instanceof Date) return timestamp.getTime();
+    const maybe: any = timestamp;
+    if (typeof maybe?.toDate === 'function') return maybe.toDate().getTime();
+    if (typeof maybe?.seconds === 'number') return maybe.seconds * 1000;
+    return null;
+  };
+
+  const waitingPrice = (order?.status || '').toLowerCase().includes('waiting_admin_price');
+  const paid = (order?.paymentStatus || order?.status || '').toLowerCase().includes('paid');
+  const expiryInfo = useMemo(() => {
+    if (!order || order.type !== 'rent' || !order.amount || paid) {
+      return { expired: false, remainingMs: null };
+    }
+    const expiresAt =
+      getMillis(order.expiresAt) ??
+      (getMillis(order.priceSetAt) ? getMillis(order.priceSetAt)! + REACTIVATION_MS : null);
+    const remainingMs = expiresAt != null ? expiresAt - now : null;
+    return { expired: expiresAt != null && remainingMs != null && remainingMs <= 0, remainingMs };
+  }, [order, now, paid]);
 
   const statusText = useMemo(() => {
     if (!order) return 'Loading order...';
+    if (expiryInfo.expired) return 'This quote expired. Reactivate to get another 24 hours.';
     if (!order.amount || order.status === 'waiting_admin_price') return 'Waiting for admin to set price';
     if (order.paymentStatus === 'paid' || order.status === 'paid') return 'Payment confirmed. We are processing your delivery.';
     return `Price set: NGN ${order.amount}. Please complete payment.`;
-  }, [order]);
-  const waitingPrice = (order?.status || '').toLowerCase().includes('waiting_admin_price');
-  const paid = (order?.paymentStatus || order?.status || '').toLowerCase().includes('paid');
+  }, [order, expiryInfo.expired]);
 
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
@@ -64,6 +122,19 @@ export default function OrderPage() {
     );
     return () => unsub();
   }, [id]);
+
+  useEffect(() => {
+    if (!id || typeof id !== 'string' || !order) return;
+    if (expirySeeded.current) return;
+    if (order.type !== 'rent' || !order.amount || paid || order.expiresAt) return;
+    expirySeeded.current = true;
+    updateDoc(doc(db, 'orders', id), {
+      priceSetAt: serverTimestamp(),
+      expiresAt: new Date(Date.now() + REACTIVATION_MS),
+    }).catch(() => {
+      // ignore expiry seed errors
+    });
+  }, [order, id, paid]);
 
   const startPayment = async () => {
     if (!id || typeof id !== 'string' || !order || !order.amount) return;
@@ -161,6 +232,36 @@ export default function OrderPage() {
       ) : (
         <>
           <Text style={styles.status}>{statusText}</Text>
+          {expiryInfo.remainingMs != null && !paid ? (
+            expiryInfo.expired ? (
+              <Text style={{ marginTop: 8, color: colors.danger, fontWeight: '700' }}>Quote expired.</Text>
+            ) : (
+              <Animated.Text
+                style={{
+                  marginTop: 8,
+                  fontWeight: '600',
+                  color: isDark
+                    ? timerPulse.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [colors.primary, '#5EEAD4'],
+                      })
+                    : colors.primary,
+                }}
+              >
+                Time left: {Math.max(0, Math.floor(expiryInfo.remainingMs / 3600000))
+                  .toString()
+                  .padStart(2, '0')}
+                :
+                {Math.max(0, Math.floor((expiryInfo.remainingMs % 3600000) / 60000))
+                  .toString()
+                  .padStart(2, '0')}
+                :
+                {Math.max(0, Math.floor((expiryInfo.remainingMs % 60000) / 1000))
+                  .toString()
+                  .padStart(2, '0')}
+              </Animated.Text>
+            )
+          ) : null}
           {order.reference ? <Text style={styles.ref}>Reference: {order.reference}</Text> : null}
           {waitingPrice ? (
             <Text style={{ marginTop: 16, color: '#475569' }}>
@@ -181,6 +282,23 @@ export default function OrderPage() {
               </View>
               {paid ? (
                 <Text style={{ marginTop: 16, color: '#0B6E6B', fontWeight: '700' }}>Payment completed.</Text>
+              ) : expiryInfo.expired ? (
+                <TouchableOpacity
+                  style={[styles.payBtn, { backgroundColor: colors.primary }]}
+                  onPress={async () => {
+                    if (!id || typeof id !== 'string') return;
+                    try {
+                    await updateDoc(doc(db, 'orders', id), {
+                      expiresAt: new Date(Date.now() + REACTIVATION_MS),
+                      reactivatedAt: serverTimestamp(),
+                    });
+                    } catch {
+                      Alert.alert('Reactivate failed', 'Could not reactivate this order. Please try again.');
+                    }
+                  }}
+                >
+                  <Text style={styles.payBtnText}>Reactivate for 24 hours</Text>
+                </TouchableOpacity>
               ) : (
                 <TouchableOpacity style={styles.payBtn} onPress={startPayment} disabled={paying}>
                   <Text style={styles.payBtnText}>{paying ? 'Starting payment...' : 'Pay with Flutterwave'}</Text>

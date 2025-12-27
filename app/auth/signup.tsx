@@ -13,6 +13,7 @@ import { useTheme } from '../../lib/theme';
 export default function SignupScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -216,11 +217,11 @@ export default function SignupScreen() {
             <Text style={styles.subtitle}>Join Sachio Mobile Toilets today</Text>
             <View style={styles.pillRow}>
               <View style={styles.pill}>
-                <FontAwesome5 name="clock" size={12} color="#0B6E6B" />
+                <FontAwesome5 name="clock" size={12} color={colors.primary} />
                 <Text style={styles.pillText}>2-min signup</Text>
               </View>
               <View style={styles.pill}>
-                <FontAwesome5 name="shield-alt" size={12} color="#0B6E6B" />
+                <FontAwesome5 name="shield-alt" size={12} color={colors.primary} />
                 <Text style={styles.pillText}>Secure</Text>
               </View>
             </View>
@@ -275,7 +276,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="John Doe"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.muted}
                   value={fullName}
                   onChangeText={setFullName}
                   editable={!loading}
@@ -316,7 +317,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="your@email.com"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.muted}
                   value={email}
                   onChangeText={setEmail}
                   editable={!loading}
@@ -359,7 +360,7 @@ export default function SignupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="+234 800 000 0000"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.muted}
                   value={phone}
                   onChangeText={setPhone}
                   editable={!loading}
@@ -402,7 +403,7 @@ export default function SignupScreen() {
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
                     placeholder="********"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.muted}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -442,7 +443,7 @@ export default function SignupScreen() {
                       <FontAwesome5
                         name={showPassword ? 'eye' : 'eye-slash'}
                         size={16}
-                        color="#0B6E6B"
+                        color={colors.primary}
                       />
                     </Animated.View>
                   </TouchableOpacity>
@@ -455,7 +456,7 @@ export default function SignupScreen() {
                     {
                       backgroundColor: strengthAnim.interpolate({
                         inputRange: [0, 1],
-                        outputRange: ['#e5e7eb', '#0B6E6B'],
+                        outputRange: [isDark ? '#374151' : '#e5e7eb', colors.primary],
                       }),
                     },
                   ]}
@@ -466,7 +467,7 @@ export default function SignupScreen() {
                     {
                       backgroundColor: strengthAnim.interpolate({
                         inputRange: [1, 2],
-                        outputRange: ['#e5e7eb', '#0B6E6B'],
+                        outputRange: [isDark ? '#374151' : '#e5e7eb', colors.primary],
                       }),
                     },
                   ]}
@@ -477,7 +478,7 @@ export default function SignupScreen() {
                     {
                       backgroundColor: strengthAnim.interpolate({
                         inputRange: [2, 3],
-                        outputRange: ['#e5e7eb', '#0B6E6B'],
+                        outputRange: [isDark ? '#374151' : '#e5e7eb', colors.primary],
                       }),
                     },
                   ]}
@@ -488,7 +489,7 @@ export default function SignupScreen() {
                     {
                       backgroundColor: strengthAnim.interpolate({
                         inputRange: [3, 4],
-                        outputRange: ['#e5e7eb', '#0B6E6B'],
+                        outputRange: [isDark ? '#374151' : '#e5e7eb', colors.primary],
                       }),
                     },
                   ]}
@@ -525,7 +526,7 @@ export default function SignupScreen() {
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
                     placeholder="********"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.muted}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showConfirmPassword}
@@ -565,7 +566,7 @@ export default function SignupScreen() {
                       <FontAwesome5
                         name={showConfirmPassword ? 'eye' : 'eye-slash'}
                         size={16}
-                        color="#0B6E6B"
+                        color={colors.primary}
                       />
                     </Animated.View>
                   </TouchableOpacity>
@@ -623,11 +624,12 @@ export default function SignupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
+const createStyles = (colors: { [key: string]: string }, isDark: boolean) =>
+  StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: {
     flex: 1,
-    backgroundColor: '#FAFBFB',
+    backgroundColor: colors.background,
     paddingHorizontal: 24,
     paddingVertical: 40,
   },
@@ -640,15 +642,15 @@ const styles = StyleSheet.create({
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#E6F4F3',
+    backgroundColor: isDark ? '#12201f' : '#E6F4F3',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#D1E7E5',
+    borderColor: isDark ? '#1f3b3a' : '#D1E7E5',
   },
   badgeText: {
-    color: '#0B6E6B',
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 12,
     letterSpacing: 0.5,
@@ -656,13 +658,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#0B6E6B',
+    color: colors.primary,
     marginBottom: 8,
     fontFamily: 'Nunito',
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
+    color: colors.muted,
     marginBottom: 32,
     fontFamily: 'Nunito',
   },
@@ -675,26 +677,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border,
   },
   pillText: {
     fontSize: 12,
-    color: '#1E293B',
+    color: colors.text,
     fontWeight: '600',
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#0B6E6B',
-    shadowOpacity: 0.05,
+    borderColor: colors.border,
+    shadowColor: isDark ? '#000' : colors.primary,
+    shadowOpacity: isDark ? 0.2 : 0.05,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 2,
@@ -712,33 +714,34 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: isDark ? '#374151' : '#e5e7eb',
   },
   strengthDotActive: {
-    backgroundColor: '#0B6E6B',
+    backgroundColor: colors.primary,
   },
   strengthText: {
     fontSize: 12,
-    color: '#64748B',
+    color: colors.muted,
     marginLeft: 6,
     flex: 1,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.text,
     marginBottom: 8,
     fontFamily: 'Nunito',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 0,
     fontSize: 14,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
+    color: colors.text,
   },
   inputWrap: {
     borderRadius: 10,
@@ -746,8 +749,8 @@ const styles = StyleSheet.create({
   },
   inputWrapActive: {
     borderWidth: 1,
-    borderColor: '#0B6E6B',
-    backgroundColor: '#F6FBFA',
+    borderColor: colors.primary,
+    backgroundColor: isDark ? '#0f1f1e' : '#F6FBFA',
   },
   passwordRow: {
     flexDirection: 'row',
@@ -766,12 +769,12 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 12,
-    color: '#666',
+    color: colors.muted,
     marginBottom: 24,
     fontFamily: 'Nunito',
   },
   link: {
-    color: '#0B6E6B',
+    color: colors.primary,
     fontWeight: '600',
   },
   footer: {
@@ -781,13 +784,13 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.muted,
     fontFamily: 'Nunito',
   },
   footerLink: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0B6E6B',
+    color: colors.primary,
     fontFamily: 'Nunito',
   },
   socialBtn: {

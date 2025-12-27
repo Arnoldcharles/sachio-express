@@ -153,6 +153,7 @@ const safeDate = (value: string) => {
 export default function HomeScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const [products, setProducts] = useState<Product[]>([]);
   const [filtered, setFiltered] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -610,7 +611,7 @@ export default function HomeScreen() {
             />
           ) : (
             <View style={[styles.gridImage, styles.gridImageFallback]}>
-              <FontAwesome5 name="toilet" size={26} color="#0B6E6B" />
+              <FontAwesome5 name="toilet" size={26} color={colors.primary} />
             </View>
           )}
           <View style={styles.badgeRow}>
@@ -628,13 +629,8 @@ export default function HomeScreen() {
           </View>
           <View style={styles.iconPills}>
             {outOfStock ? (
-              <View
-                style={[
-                  styles.gridCart,
-                  { backgroundColor: "#FEF2F2", borderColor: "#FECACA" },
-                ]}
-              >
-                <FontAwesome5 name="ban" size={12} color="#B91C1C" />
+              <View style={[styles.gridCart, styles.gridCartDisabled]}>
+                <FontAwesome5 name="ban" size={12} color={colors.danger} />
               </View>
             ) : (
               <TouchableOpacity
@@ -668,7 +664,7 @@ export default function HomeScreen() {
                   }
                 }}
               >
-                <FontAwesome5 name="plus" size={12} color="#0B6E6B" />
+                <FontAwesome5 name="plus" size={12} color={colors.primary} />
               </TouchableOpacity>
             )}
           </View>
@@ -696,7 +692,7 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#0B6E6B"]}
+            colors={[colors.primary]}
           />
         }
       >
@@ -726,14 +722,14 @@ export default function HomeScreen() {
               style={styles.iconBtn}
               onPress={() => router.push("/notifications")}
             >
-              <FontAwesome5 name="bell" size={14} color="#0B6E6B" />
+              <FontAwesome5 name="bell" size={14} color={colors.primary} />
             </TouchableOpacity>
             <View style={styles.cartIconWrap}>
               <TouchableOpacity
                 style={styles.iconBtn}
                 onPress={() => router.push("/cart")}
               >
-                <FontAwesome5 name="shopping-cart" size={14} color="#0B6E6B" />
+                <FontAwesome5 name="shopping-cart" size={14} color={colors.primary} />
               </TouchableOpacity>
               {
               cartCount > 0 ? (
@@ -743,12 +739,6 @@ export default function HomeScreen() {
               ) : null
             }
             </View>
-            <TouchableOpacity
-              style={styles.avatarBtn}
-              onPress={() => router.push("/(tabs)/profile")}
-            >
-              <FontAwesome5 name="user" size={14} color="#0B6E6B" />
-            </TouchableOpacity>
           </View>
         </Animated.View>
         <Animated.View
@@ -770,7 +760,7 @@ export default function HomeScreen() {
           <FontAwesome5 name="search" size={14} color="#94a3b8" />
           <TextInput
             placeholder="Search for products..."
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.muted}
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
@@ -802,6 +792,7 @@ export default function HomeScreen() {
               label="All"
               active={selectedCategory === "All"}
               onPress={() => setSelectedCategory("All")}
+              styles={styles}
             />
             {categories.map((cat) => (
               <CategoryChip
@@ -809,6 +800,7 @@ export default function HomeScreen() {
                 label={cat.name}
                 active={selectedCategory === cat.name}
                 onPress={() => setSelectedCategory(cat.name)}
+                styles={styles}
               />
             ))}
           </ScrollView>
@@ -839,7 +831,7 @@ export default function HomeScreen() {
             <View style={styles.formField}>
               <TextInput
                 placeholder="Your Name"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.muted}
                 value={rentName}
                 onChangeText={setRentName}
                 style={styles.formInput}
@@ -848,7 +840,7 @@ export default function HomeScreen() {
             <View style={styles.formField}>
               <TextInput
                 placeholder="Your Email Address"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.muted}
                 value={rentEmail}
                 onChangeText={setRentEmail}
                 keyboardType="email-address"
@@ -859,7 +851,7 @@ export default function HomeScreen() {
             <View style={styles.formField}>
               <TextInput
                 placeholder="Your Phone Number"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.muted}
                 value={rentPhone}
                 onChangeText={setRentPhone}
                 keyboardType="phone-pad"
@@ -869,7 +861,7 @@ export default function HomeScreen() {
             <View style={styles.formField}>
               <TextInput
                 placeholder="Number of Toilets Required"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.muted}
                 value={rentToilets}
                 onChangeText={setRentToilets}
                 keyboardType="numeric"
@@ -879,7 +871,7 @@ export default function HomeScreen() {
             <View style={styles.formField}>
               <TextInput
                 placeholder="Event Duration (In Days)"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.muted}
                 value={rentDuration}
                 onChangeText={setRentDuration}
                 keyboardType="numeric"
@@ -894,7 +886,7 @@ export default function HomeScreen() {
               <View pointerEvents="none">
                 <TextInput
                   placeholder="Event Date"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                   value={rentEventDate}
                   editable={false}
                   style={styles.formInput}
@@ -908,7 +900,7 @@ export default function HomeScreen() {
               <View pointerEvents="none">
                 <TextInput
                   placeholder="Event Location (State)"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                   value={rentState}
                   editable={false}
                   style={styles.formInput}
@@ -918,7 +910,7 @@ export default function HomeScreen() {
             <View style={styles.formField}>
               <TextInput
                 placeholder="Event Location (Full Address)"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.muted}
                 value={rentAddress}
                 onChangeText={setRentAddress}
                 style={styles.formInput}
@@ -931,7 +923,7 @@ export default function HomeScreen() {
               <View pointerEvents="none">
                 <TextInput
                   placeholder="Type of Event"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                   value={rentEventType}
                   editable={false}
                   style={styles.formInput}
@@ -945,7 +937,7 @@ export default function HomeScreen() {
               <View pointerEvents="none">
                 <TextInput
                   placeholder="Approximate Number of Guests"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                   value={rentGuestCount}
                   editable={false}
                   style={styles.formInput}
@@ -959,7 +951,7 @@ export default function HomeScreen() {
               <View pointerEvents="none">
                 <TextInput
                   placeholder="Product Type"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                   value={rentProductType.join(", ")}
                   editable={false}
                   style={styles.formInput}
@@ -973,7 +965,7 @@ export default function HomeScreen() {
               <View pointerEvents="none">
                 <TextInput
                   placeholder="Rental Type"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                   value={rentRentalType}
                   editable={false}
                   style={styles.formInput}
@@ -983,7 +975,7 @@ export default function HomeScreen() {
             <View style={styles.formField}>
               <TextInput
                 placeholder="Additional Request and Comments (Optional)"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.muted}
                 value={rentComments}
                 onChangeText={setRentComments}
                 style={[styles.formInput, { height: 90 }]}
@@ -997,7 +989,7 @@ export default function HomeScreen() {
               <View pointerEvents="none">
                 <TextInput
                   placeholder="How did you hear about us? (Optional)"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                   value={rentReferral}
                   editable={false}
                   style={styles.formInput}
@@ -1017,7 +1009,7 @@ export default function HomeScreen() {
 
         {loading ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator color="#0B6E6B" size="large" />
+            <ActivityIndicator color={colors.primary} size="large" />
             <Text style={styles.loadingText}>Loading toilets…</Text>
           </View>
         ) : showRentForm ? null : (
@@ -1155,10 +1147,12 @@ function CategoryChip({
   label,
   active,
   onPress,
+  styles,
 }: {
   label: string;
   active?: boolean;
   onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <TouchableOpacity
@@ -1173,9 +1167,10 @@ function CategoryChip({
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#FAFBFB" },
-  container: { flex: 1, backgroundColor: "#FAFBFB" },
+const createStyles = (colors: { [key: string]: string }, isDark: boolean) =>
+  StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.background },
   headerBar: {
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -1187,7 +1182,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#0F172A",
+    color: colors.text,
     lineHeight: 24,
     maxWidth: "78%",
   },
@@ -1195,21 +1190,21 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: "#E6F4F3",
+    backgroundColor: colors.surface,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#D1E7E5",
+    borderColor: colors.border,
   },
   avatarBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.surface,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
   },
   cartIconWrap: {
     position: "relative",
@@ -1218,7 +1213,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -4,
     right: -4,
-    backgroundColor: "#EF4444",
+    backgroundColor: colors.danger,
     borderRadius: 999,
     paddingHorizontal: 5,
     minWidth: 16,
@@ -1229,7 +1224,7 @@ const styles = StyleSheet.create({
   cartBadgeText: { color: "#fff", fontSize: 10, fontWeight: "800" },
   searchBar: {
     marginHorizontal: 16,
-    backgroundColor: "#fff",
+    backgroundColor: isDark ? "#121a1f" : "#FFFFFF",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1237,48 +1232,61 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#0B6E6B",
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 1,
+    borderColor: isDark ? "#24313a" : "#E3ECEC",
+    shadowColor: isDark ? "#000" : "#0B6E6B",
+    shadowOpacity: isDark ? 0.18 : 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: isDark ? 0 : 2,
   },
-  searchInput: { flex: 1, color: "#0F172A", fontSize: 14, paddingVertical: 0 },
+  searchInput: { flex: 1, color: colors.text, fontSize: 14, paddingVertical: 0 },
   sectionTitle: {
     marginTop: 18,
     marginHorizontal: 16,
     fontSize: 16,
     fontWeight: "800",
-    color: "#0F172A",
+    color: colors.text,
   },
   chipRow: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 10,
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 14,
+    backgroundColor: isDark ? "#10161a" : "#F5FAFA",
+    borderWidth: 1,
+    borderColor: isDark ? "#1d2a31" : "#E4EEEE",
   },
   catChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "#F3F7F7",
+    backgroundColor: isDark ? "#161e23" : "#F3F7F7",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: isDark ? "#26323b" : "#E2ECEC",
+    shadowColor: isDark ? "#000" : "#0B6E6B",
+    shadowOpacity: isDark ? 0.18 : 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: isDark ? 0 : 1,
   },
   catChipActive: {
-    backgroundColor: "#0B6E6B",
-    borderColor: "#0B6E6B",
+    backgroundColor: isDark ? "#1b5f5b" : colors.primary,
+    borderColor: isDark ? "#2fb7a8" : colors.primary,
   },
-  catChipText: { color: "#0B6E6B", fontWeight: "700", fontSize: 13 },
+  catChipText: { color: colors.primary, fontWeight: "700", fontSize: 13 },
   gridCard: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 10,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    shadowColor: "#0B6E6B",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    borderColor: isDark ? "#1f2a33" : "#E3E8EC",
+    shadowColor: isDark ? "#000" : "#0B6E6B",
+    shadowOpacity: isDark ? 0.28 : 0.09,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 7 },
     elevation: 2,
   },
   gridImageWrap: { position: "relative" },
@@ -1286,7 +1294,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 140,
     borderRadius: 14,
-    backgroundColor: "#f0f8f8",
+    backgroundColor: isDark ? "#0f1a1a" : "#f0f8f8",
   },
   gridImageFallback: {
     justifyContent: "center",
@@ -1302,7 +1310,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   newBadge: {
-    backgroundColor: "#EF4444",
+    backgroundColor: colors.danger,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
@@ -1312,12 +1320,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
   },
-  ratingText: { fontSize: 11, fontWeight: "700", color: "#0B6E6B" },
+  ratingText: { fontSize: 11, fontWeight: "700", color: colors.primary },
   iconPills: {
     position: "absolute",
     bottom: 8,
@@ -1328,28 +1336,32 @@ const styles = StyleSheet.create({
   gridTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#0F172A",
+    color: colors.text,
     marginTop: 8,
   },
   gridPrice: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#0B6E6B",
+    color: colors.primary,
     marginTop: 2,
   },
   gridCart: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#E6F4F3",
+    backgroundColor: isDark ? "#0f1f1e" : "#E6F4F3",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#D1E7E5",
+    borderColor: colors.border,
+  },
+  gridCartDisabled: {
+    backgroundColor: isDark ? "#2a1414" : "#FEF2F2",
+    borderColor: isDark ? "#7f1d1d" : "#FECACA",
   },
   stockBadge: {
     marginTop: 6,
-    color: "#B91C1C",
+    color: colors.danger,
     fontSize: 12,
     fontWeight: "700",
   },
@@ -1358,25 +1370,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  loadingText: { color: "#475569", fontWeight: "600" },
+  loadingText: { color: colors.muted, fontWeight: "600" },
   emptyState: { alignItems: "center", paddingVertical: 20, gap: 6 },
-  emptyTitle: { fontSize: 16, fontWeight: "800", color: "#0B6E6B" },
-  emptyBody: { fontSize: 13, color: "#475569" },
+  emptyTitle: { fontSize: 16, fontWeight: "800", color: colors.primary },
+  emptyBody: { fontSize: 13, color: colors.muted },
   rentForm: { marginTop: 12, marginHorizontal: 16, gap: 10 },
-  rentTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A" },
-  rentSubtitle: { color: "#475569" },
+  rentTitle: { fontSize: 18, fontWeight: "800", color: colors.text },
+  rentSubtitle: { color: colors.muted },
   formField: {},
   formInput: {
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    color: "#0F172A",
-    backgroundColor: "#fff",
+    color: colors.text,
+    backgroundColor: colors.surface,
   },
   submitBtn: {
-    backgroundColor: "#0B6E6B",
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
@@ -1385,31 +1397,31 @@ const styles = StyleSheet.create({
   submitText: { color: "#fff", fontWeight: "800", fontSize: 15 },
   pickerBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(15,23,42,0.4)",
+    backgroundColor: colors.overlay,
     justifyContent: "center",
     padding: 16,
   },
   pickerCard: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.card,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     maxHeight: "70%",
   },
   pickerOption: {
     paddingVertical: 12,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
+    borderBottomColor: colors.border,
   },
-  pickerOptionText: { color: "#0F172A", fontWeight: "600" },
+  pickerOptionText: { color: colors.text, fontWeight: "600" },
   pickerOptionSelected: {
-    backgroundColor: "#E6F4F3",
+    backgroundColor: isDark ? "#123433" : "#E6F4F3",
   },
   pickerDoneBtn: {
     marginTop: 10,
-    backgroundColor: "#0B6E6B",
+    backgroundColor: colors.primary,
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: "center",
@@ -1418,7 +1430,7 @@ const styles = StyleSheet.create({
   announcementOverlay: {
     position: "absolute",
     inset: 0,
-    backgroundColor: "rgba(15,23,42,0.4)",
+    backgroundColor: colors.overlay,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -1426,7 +1438,7 @@ const styles = StyleSheet.create({
   announcementCard: {
     width: "100%",
     maxWidth: 380,
-    backgroundColor: "#fff",
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     shadowColor: "#000",
@@ -1434,7 +1446,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
   },
   announcementHeader: {
     flexDirection: "row",
@@ -1444,31 +1456,31 @@ const styles = StyleSheet.create({
   announcementLabel: {
     fontSize: 11,
     fontWeight: "800",
-    color: "#0B6E6B",
+    color: colors.primary,
     textTransform: "uppercase",
   },
   announcementTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#0F172A",
+    color: colors.text,
     marginTop: 2,
   },
   announcementTime: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#64748B",
+    color: colors.muted,
     marginTop: 2,
   },
   announcementMessage: {
     marginTop: 12,
     fontSize: 14,
-    color: "#0F172A",
+    color: colors.text,
     lineHeight: 20,
   },
   announcementAction: {
     marginTop: 16,
     alignSelf: "flex-end",
-    backgroundColor: "#0B6E6B",
+    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
@@ -1478,16 +1490,16 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
   },
-  closeBtnText: { fontSize: 14, fontWeight: "800", color: "#475569" },
+  closeBtnText: { fontSize: 14, fontWeight: "800", color: colors.muted },
   paymentBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(15,23,42,0.45)",
+    backgroundColor: colors.overlay,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -1495,43 +1507,29 @@ const styles = StyleSheet.create({
   paymentCard: {
     width: "100%",
     maxWidth: 360,
-    backgroundColor: "#fff",
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     shadowColor: "#000",
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 4,
   },
-  paymentTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A" },
+  paymentTitle: { fontSize: 18, fontWeight: "800", color: colors.text },
   paymentBody: {
     marginTop: 8,
     fontSize: 14,
-    color: "#475569",
+    color: colors.muted,
     lineHeight: 20,
   },
   paymentBtn: {
     marginTop: 16,
-    backgroundColor: "#EF4444",
+    backgroundColor: colors.danger,
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: "center",
   },
-  paymentBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  paymentBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+});

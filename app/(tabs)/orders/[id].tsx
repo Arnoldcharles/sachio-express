@@ -41,6 +41,7 @@ export default function OrderDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [order, setOrder] = useState<OrderDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
@@ -159,14 +160,14 @@ export default function OrderDetail() {
             onPress={() => router.back()}
             style={{ padding: 6, marginRight: 8 }}
           >
-            <FontAwesome5 name="arrow-left" size={18} color="#0B6E6B" />
+            <FontAwesome5 name="arrow-left" size={18} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>Order Details</Text>
         </View>
 
         {!currentUser ? (
           <View style={styles.emptyState}>
-            <FontAwesome5 name="lock" size={32} color="#94a3b8" />
+            <FontAwesome5 name="lock" size={32} color={colors.muted} />
             <Text style={styles.emptyText}>Login required</Text>
             <Text style={styles.emptySubtext}>
               Please sign in to view this order.
@@ -180,7 +181,7 @@ export default function OrderDetail() {
           </View>
         ) : unauthorized ? (
           <View style={styles.emptyState}>
-            <FontAwesome5 name="ban" size={32} color="#ef4444" />
+            <FontAwesome5 name="ban" size={32} color={colors.danger} />
             <Text style={styles.emptyText}>Access denied</Text>
             <Text style={styles.emptySubtext}>
               This order is not in your account.
@@ -188,7 +189,7 @@ export default function OrderDetail() {
           </View>
         ) : loading ? (
           <View style={styles.emptyState}>
-            <ActivityIndicator size="large" color="#0B6E6B" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.emptySubtext}>Loading order...</Text>
           </View>
         ) : order ? (
@@ -245,7 +246,7 @@ export default function OrderDetail() {
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <FontAwesome5 name="inbox" size={32} color="#94a3b8" />
+            <FontAwesome5 name="inbox" size={32} color={colors.muted} />
             <Text style={styles.emptyText}>Order not found</Text>
           </View>
         )}
@@ -269,7 +270,7 @@ export default function OrderDetail() {
                   onPress={() => setShowItems(false)}
                   style={styles.itemsCloseIcon}
                 >
-                  <FontAwesome5 name="times" size={14} color="#0B6E6B" />
+                  <FontAwesome5 name="times" size={14} color={colors.primary} />
                 </TouchableOpacity>
               </View>
               <View style={styles.itemsListWrap}>
@@ -296,18 +297,19 @@ export default function OrderDetail() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#FAFBFB" },
-  container: { flex: 1, padding: 16, backgroundColor: "#FAFBFB" },
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, padding: 16, backgroundColor: colors.background },
   header: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  title: { fontSize: 20, fontWeight: "700", color: "#0B6E6B" },
+  title: { fontSize: 20, fontWeight: "700", color: colors.primary },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
-    shadowColor: "#0B6E6B",
+    borderColor: colors.border,
+    shadowColor: colors.primary,
     shadowOpacity: 0.04,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
@@ -316,16 +318,16 @@ const styles = StyleSheet.create({
   orderId: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0B6E6B",
+    color: colors.primary,
     marginBottom: 8,
   },
-  label: { fontSize: 12, color: "#475569", marginTop: 6 },
-  value: { fontSize: 14, color: "#0F172A", fontWeight: "700" },
+  label: { fontSize: 12, color: colors.muted, marginTop: 6 },
+  value: { fontSize: 14, color: colors.text, fontWeight: "700" },
   itemsToggle: { marginTop: 6, alignSelf: "flex-start" },
-  itemsToggleText: { color: "#0B6E6B", fontWeight: "700", fontSize: 12 },
+  itemsToggleText: { color: colors.primary, fontWeight: "700", fontSize: 12 },
   itemsBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(15,23,42,0.45)",
+    backgroundColor: colors.overlay,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
@@ -333,11 +335,11 @@ const styles = StyleSheet.create({
   itemsModal: {
     width: "100%",
     maxWidth: 360,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.border,
     shadowColor: "#000",
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -346,7 +348,7 @@ const styles = StyleSheet.create({
   itemsModalTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#0B6E6B",
+    color: colors.primary,
     marginBottom: 10,
   },
   itemsModalHeader: {
@@ -358,11 +360,11 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#E6F4F3",
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#D1E7E5",
+    borderColor: colors.border,
   },
   itemsListWrap: { maxHeight: 260 },
   itemsRow: {
@@ -371,11 +373,11 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 6,
   },
-  itemsBullet: { fontSize: 16, color: "#0B6E6B", lineHeight: 20 },
-  itemsModalItem: { fontSize: 14, color: "#0F172A", marginBottom: 6 },
+  itemsBullet: { fontSize: 16, color: colors.primary, lineHeight: 20 },
+  itemsModalItem: { fontSize: 14, color: colors.text, marginBottom: 6 },
   itemsCloseBtn: {
     marginTop: 12,
-    backgroundColor: "#0B6E6B",
+    backgroundColor: colors.primary,
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: "center",
@@ -391,25 +393,25 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: colors.border,
     marginBottom: 4,
   },
-  dotActive: { backgroundColor: "#0B6E6B" },
-  stepText: { fontSize: 11, color: "#94a3b8", textAlign: "center" },
-  stepTextActive: { color: "#0B6E6B", fontWeight: "700" },
+  dotActive: { backgroundColor: colors.primary },
+  stepText: { fontSize: 11, color: colors.muted, textAlign: "center" },
+  stepTextActive: { color: colors.primary, fontWeight: "700" },
   emptyState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
-  emptyText: { fontSize: 16, fontWeight: "700", color: "#1E293B" },
-  emptySubtext: { fontSize: 14, color: "#64748b", textAlign: "center" },
+  emptyText: { fontSize: 16, fontWeight: "700", color: colors.text },
+  emptySubtext: { fontSize: 14, color: colors.muted, textAlign: "center" },
   loginBtn: {
     marginTop: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "#0B6E6B",
+    backgroundColor: colors.primary,
     borderRadius: 10,
   },
   loginBtnText: { color: "#fff", fontWeight: "700" },

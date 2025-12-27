@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { auth, db } from '../../lib/firebase';
-import { collection, orderBy, query, onSnapshot, where, doc, getDoc } from 'firebase/firestore';
+import { collection, orderBy, query, onSnapshot, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../lib/theme';
@@ -18,11 +18,15 @@ type OrderItem = {
   productTitle?: string;
   status?: string;
   createdAt?: { seconds: number; nanoseconds: number };
+  priceSetAt?: { seconds: number; nanoseconds: number };
+  expiresAt?: { seconds: number; nanoseconds: number };
   price?: number | string;
   paymentMethod?: string;
   type?: string;
   amount?: number | string;
 };
+
+const REACTIVATION_MS = 24 * 60 * 60 * 1000;
 
 export default function OrdersTab() {
   const router = useRouter();
@@ -34,11 +38,14 @@ export default function OrdersTab() {
   const [userId, setUserId] = useState<string | null>(auth.currentUser?.uid ?? null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const headerAnim = useRef(new Animated.Value(0)).current;
   const listAnim = useRef(new Animated.Value(0)).current;
+  const timerPulse = useRef(new Animated.Value(0)).current;
   // Track previous statuses to optionally inform users in-app (no push in Expo Go)
   const lastStatuses = useRef<Record<string, string>>({});
   const cacheKey = (uid: string) => `orders_cache_${uid}`;
+  const expirySeeded = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!auth || typeof auth.onAuthStateChanged !== 'function') return;
@@ -66,6 +73,36 @@ export default function OrdersTab() {
       }),
     ]).start();
   }, [headerAnim, listAnim]);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!isDark) {
+      timerPulse.setValue(0);
+      return;
+    }
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(timerPulse, {
+          toValue: 1,
+          duration: 2400,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(timerPulse, {
+          toValue: 0,
+          duration: 2400,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [isDark, timerPulse]);
 
   // Load cached orders immediately for a smoother returning experience
   useEffect(() => {
@@ -140,18 +177,70 @@ export default function OrdersTab() {
     return () => unsub();
   }, [userId]);
 
+  useEffect(() => {
+    const seedExpiry = async (order: OrderItem) => {
+      try {
+        await updateDoc(doc(db, 'orders', order.id), {
+          priceSetAt: serverTimestamp(),
+          expiresAt: new Date(Date.now() + REACTIVATION_MS),
+        });
+      } catch {
+        // ignore expiry seed errors
+      }
+    };
+    orders.forEach((order) => {
+      if (expirySeeded.current[order.id]) return;
+      const statusNorm = (order.status || '').toLowerCase();
+      const isRent = order.type === 'rent';
+      const hasPrice = order.amount != null || order.price != null;
+      const isPaid =
+        statusNorm.includes('paid') ||
+        statusNorm.includes('completed') ||
+        statusNorm.includes('delivered');
+      if (isRent && hasPrice && !isPaid && !order.expiresAt) {
+        expirySeeded.current[order.id] = true;
+        seedExpiry(order);
+      }
+    });
+  }, [orders]);
+
+  const getMillis = (timestamp?: { seconds?: number } | Date | null) => {
+    if (!timestamp) return null;
+    if (timestamp instanceof Date) return timestamp.getTime();
+    const maybe: any = timestamp;
+    if (typeof maybe?.toDate === 'function') return maybe.toDate().getTime();
+    if (typeof maybe?.seconds === 'number') return maybe.seconds * 1000;
+    return null;
+  };
+
+  const isOrderExpired = (order: OrderItem) => {
+    const statusNorm = (order.status || '').toLowerCase();
+    const isRent = order.type === 'rent';
+    const hasPrice = order.amount != null || order.price != null;
+    const isPaid =
+      statusNorm.includes('paid') ||
+      statusNorm.includes('completed') ||
+      statusNorm.includes('delivered');
+    if (!isRent || !hasPrice || isPaid) return false;
+    const expiresAt =
+      getMillis(order.expiresAt) ??
+      (getMillis(order.priceSetAt) ? getMillis(order.priceSetAt)! + REACTIVATION_MS : null);
+    return expiresAt != null && expiresAt <= now;
+  };
+
   const grouped = useMemo(() => {
     return orders.reduce(
       (acc: Record<'active' | 'past' | 'cancelled', OrderItem[]>, order) => {
         const status = (order.status || '').toLowerCase();
-        if (status.includes('cancel')) acc.cancelled.push(order);
+        if (isOrderExpired(order)) acc.cancelled.push(order);
+        else if (status.includes('cancel')) acc.cancelled.push(order);
         else if (status.includes('delivered') || status.includes('completed')) acc.past.push(order);
         else acc.active.push(order);
         return acc;
       },
       { active: [], past: [], cancelled: [] },
     );
-  }, [orders]);
+  }, [orders, now]);
 
   const currentOrders = grouped[activeTab] || [];
 
@@ -161,6 +250,16 @@ export default function OrdersTab() {
     if (norm.includes('paid') || norm.includes('completed') || norm.includes('delivered')) return '#16A34A';
     if (norm.includes('cancel')) return '#EF4444';
     return '#0B6E6B';
+  };
+
+  const formatCountdown = (ms: number) => {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds
+      .toString()
+      .padStart(2, '0')}`;
   };
 
   const renderOrderCard = ({ item, index }: { item: OrderItem; index: number }) => {
@@ -187,6 +286,18 @@ export default function OrdersTab() {
         : 'NGN -';
     const statusNorm = (item.status || '-').toLowerCase();
     const waitingPrice = numAmount == null && numPrice == null;
+    const isRent = item.type === 'rent';
+    const expiresAt =
+      getMillis(item.expiresAt) ??
+      (getMillis(item.priceSetAt) ? getMillis(item.priceSetAt)! + REACTIVATION_MS : null);
+    const remainingMs = expiresAt != null ? expiresAt - now : null;
+    const expired = isOrderExpired(item);
+    const timerColor = isDark
+      ? timerPulse.interpolate({
+          inputRange: [0, 1],
+          outputRange: [colors.primary, '#5EEAD4'],
+        })
+      : colors.primary;
     const handlePress = () => {
       const paid = statusNorm.includes('paid');
       // Paid orders: open in-app detail screen; otherwise go to payment/order flow
@@ -216,7 +327,11 @@ export default function OrdersTab() {
           },
         ]}
       >
-        <TouchableOpacity style={styles.orderCard} onPress={handlePress}>
+        <TouchableOpacity
+          style={styles.orderCard}
+          onPress={expired ? undefined : handlePress}
+          activeOpacity={expired ? 1 : 0.9}
+        >
           <View style={styles.orderHeader}>
             <View>
               <Text style={styles.orderNumber}>Order #{item.id.slice(0, 6)}</Text>
@@ -225,19 +340,48 @@ export default function OrdersTab() {
               <Text style={styles.metaLine}>
                 {item.type === 'rent' ? 'Rent' : 'Buy'} - {item.paymentMethod || 'Payment'}
               </Text>
+              {isRent && !waitingPrice && !expired && remainingMs != null ? (
+                <Animated.Text style={[styles.timerText, { color: timerColor }]}>
+                  Time left: {formatCountdown(remainingMs)}
+                </Animated.Text>
+              ) : null}
+              {expired ? <Text style={styles.expiredText}>Quote expired</Text> : null}
             </View>
             <View
               style={[
                 styles.statusBadge,
-                { backgroundColor: getStatusColor(item.status || '-') + '20', borderColor: getStatusColor(item.status || '-') },
+                {
+                  backgroundColor: (expired ? colors.danger : getStatusColor(item.status || '-')) + '20',
+                  borderColor: expired ? colors.danger : getStatusColor(item.status || '-'),
+                },
               ]}
             >
-              <Text style={[styles.statusText, { color: getStatusColor(item.status || '-') }]}>{item.status || '-'}</Text>
+              <Text style={[styles.statusText, { color: expired ? colors.danger : getStatusColor(item.status || '-') }]}>
+                {expired ? 'Expired' : item.status || '-'}
+              </Text>
             </View>
           </View>
           <View style={styles.orderFooter}>
             <Text style={styles.orderTotal}>{total}</Text>
-            <FontAwesome5 name="chevron-right" size={14} color="#0B6E6B" />
+            {expired ? (
+              <TouchableOpacity
+                style={styles.reactivateBtn}
+                onPress={async () => {
+                  try {
+                    await updateDoc(doc(db, 'orders', item.id), {
+                      expiresAt: new Date(Date.now() + REACTIVATION_MS),
+                      reactivatedAt: serverTimestamp(),
+                    });
+                  } catch {
+                    Alert.alert('Reactivate failed', 'Could not reactivate this order. Please try again.');
+                  }
+                }}
+              >
+                <Text style={styles.reactivateText}>Reactivate</Text>
+              </TouchableOpacity>
+            ) : (
+              <FontAwesome5 name="chevron-right" size={14} color={colors.primary} />
+            )}
           </View>
         </TouchableOpacity>
       </Animated.View>
@@ -443,6 +587,29 @@ const createStyles = (colors: any) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+    },
+    timerText: {
+      fontSize: 12,
+      color: colors.primary,
+      marginTop: 6,
+      fontWeight: '600',
+    },
+    expiredText: {
+      fontSize: 12,
+      color: colors.danger,
+      marginTop: 6,
+      fontWeight: '700',
+    },
+    reactivateBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: colors.primary,
+    },
+    reactivateText: {
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: '700',
     },
     orderTotal: {
       fontSize: 14,

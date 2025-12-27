@@ -18,6 +18,7 @@ const Text = (props: React.ComponentProps<typeof RNText>) => (
 export default function LoginScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -180,7 +181,7 @@ export default function LoginScreen() {
           >
             <View style={styles.logoRow}>
               <View style={styles.logoSquare}>
-                <FontAwesome5 name="toilet" size={18} color="#0B6E6B" />
+                <FontAwesome5 name="toilet" size={18} color={colors.primary} />
               </View>
               <View>
                 <Text style={styles.brand}>Sachio Mobile Toilets</Text>
@@ -191,11 +192,11 @@ export default function LoginScreen() {
             <Text style={styles.subtitle}>Sign in to manage deliveries, rentals, and orders.</Text>
             <View style={styles.chipStrip}>
               <View style={styles.chipBadge}>
-                <FontAwesome5 name="shield-alt" size={10} color="#0B6E6B" />
+                <FontAwesome5 name="shield-alt" size={10} color={colors.primary} />
                 <Text style={styles.chipText}>Secure login</Text>
               </View>
               <View style={styles.chipBadge}>
-                <FontAwesome5 name="clock" size={10} color="#0B6E6B" />
+                <FontAwesome5 name="clock" size={10} color={colors.primary} />
                 <Text style={styles.chipText}>Under 1 minute</Text>
               </View>
             </View>
@@ -223,6 +224,7 @@ export default function LoginScreen() {
               },
             ]}
           >
+            <View style={styles.formGlow} pointerEvents="none" />
             <View style={styles.form}>
               <Text style={styles.label}>Email Address</Text>
               <Animated.View
@@ -250,7 +252,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="your@email.com"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.muted}
                   value={email}
                   onChangeText={setEmail}
                   editable={!loading}
@@ -294,7 +296,7 @@ export default function LoginScreen() {
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
                     placeholder="********"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.muted}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -334,7 +336,7 @@ export default function LoginScreen() {
                       <FontAwesome5
                         name={showPassword ? 'eye' : 'eye-slash'}
                         size={16}
-                        color="#0B6E6B"
+                        color={colors.primary}
                       />
                     </Animated.View>
                   </TouchableOpacity>
@@ -399,11 +401,12 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
+const createStyles = (colors: { [key: string]: string }, isDark: boolean) =>
+  StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: {
     flexGrow: 1,
-    backgroundColor: '#FAFBFB',
+    backgroundColor: colors.background,
     paddingHorizontal: 24,
     paddingVertical: 40,
     justifyContent: 'space-between',
@@ -415,14 +418,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#E6F4F3',
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#D1E7E5',
+    borderColor: colors.border,
   },
-  brand: { fontSize: 16, fontWeight: '800', color: '#0B6E6B' },
-  brandSub: { fontSize: 11, fontWeight: '600', color: '#0B6E6B' },
+  brand: { fontSize: 16, fontWeight: '800', color: colors.primary },
+  brandSub: { fontSize: 11, fontWeight: '600', color: colors.primary },
   hero: { gap: 8, marginBottom: 12 },
   chipStrip: { flexDirection: 'row', gap: 8, marginTop: 6 },
   chipBadge: {
@@ -432,33 +435,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#E6F4F3',
+    backgroundColor: isDark ? '#12201f' : '#E6F4F3',
     borderWidth: 1,
-    borderColor: '#D1E7E5',
+    borderColor: isDark ? '#1f3b3a' : '#D1E7E5',
   },
-  chipText: { color: '#0B6E6B', fontWeight: '700', fontSize: 11 },
+  chipText: { color: colors.primary, fontWeight: '700', fontSize: 11 },
   title: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#0B6E6B',
+    color: colors.primary,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
+    color: colors.muted,
     marginBottom: 16,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#0B6E6B',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: colors.border,
+    shadowColor: isDark ? '#000' : colors.primary,
+    shadowOpacity: isDark ? 0.2 : 0.06,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 10,
+    elevation: isDark ? 2 : 3,
+  },
+  formGlow: {
+    position: 'absolute',
+    top: -60,
+    left: -40,
+    right: -40,
+    height: 140,
+    borderRadius: 160,
+    backgroundColor: isDark ? 'rgba(45, 212, 191, 0.18)' : 'rgba(11, 110, 107, 0.12)',
+    opacity: 0.9,
   },
   form: {
     flex: 1,
@@ -467,18 +480,19 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: colors.text,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 0,
     fontSize: 14,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
+    color: colors.text,
   },
   inputWrap: {
     borderRadius: 10,
@@ -486,8 +500,13 @@ const styles = StyleSheet.create({
   },
   inputWrapActive: {
     borderWidth: 1,
-    borderColor: '#0B6E6B',
-    backgroundColor: '#F6FBFA',
+    borderColor: colors.primary,
+    backgroundColor: isDark ? '#0f1f1e' : '#F6FBFA',
+    shadowColor: colors.primary,
+    shadowOpacity: isDark ? 0.22 : 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: isDark ? 2 : 3,
   },
   passwordRow: {
     flexDirection: 'row',
@@ -505,7 +524,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   forgotPassword: {
-    color: '#F6B22F',
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 24,
@@ -518,12 +537,12 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#666',
+    color: colors.muted,
   },
   link: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0B6E6B',
+    color: colors.primary,
   },
   socialBtn: {
     marginTop: 10,

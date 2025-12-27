@@ -18,22 +18,22 @@ type OrderDoc = {
   createdAt?: { seconds: number; nanoseconds: number };
 };
 
-const statusMap: Record<string, { label: string; color: string; icon: any }> = {
-  processing: { label: 'Processing', color: '#666', icon: 'spinner' },
-  dispatched: { label: 'Dispatched', color: '#F6B22F', icon: 'truck' },
-  in_transit: { label: 'In Transit', color: '#0B6E6B', icon: 'road' },
-  returning: { label: 'Returning', color: '#0B6E6B', icon: 'undo' },
-  delivered: { label: 'Delivered', color: '#16A34A', icon: 'check-circle' },
-  completed: { label: 'Completed', color: '#16A34A', icon: 'check-circle' },
+const statusMap: Record<string, { label: string; color: string; icon: any; darkColor: string }> = {
+  processing: { label: 'Processing', color: '#666', darkColor: '#9CA3AF', icon: 'spinner' },
+  dispatched: { label: 'Dispatched', color: '#F6B22F', darkColor: '#FBBF24', icon: 'truck' },
+  in_transit: { label: 'In Transit', color: '#0B6E6B', darkColor: '#5EEAD4', icon: 'road' },
+  returning: { label: 'Returning', color: '#0B6E6B', darkColor: '#5EEAD4', icon: 'undo' },
+  delivered: { label: 'Delivered', color: '#16A34A', darkColor: '#22C55E', icon: 'check-circle' },
+  completed: { label: 'Completed', color: '#16A34A', darkColor: '#22C55E', icon: 'check-circle' },
 };
 
-function Header({ title, onPressNotifications, badgeCount }: any) {
+function Header({ title, onPressNotifications, badgeCount, styles, colors }: any) {
   return (
     <View style={styles.header}>
       <View style={{ width: 20 }} />
       <Text style={styles.headerTitle}>{title}</Text>
       <TouchableOpacity style={{ position: 'relative' }} onPress={onPressNotifications}>
-        <FontAwesome5 name="bell" size={18} color="#0B6E6B" />
+        <FontAwesome5 name="bell" size={18} color={colors.primary} />
         {badgeCount > 0 ? (
           <View style={styles.badgeDot}>
             <Text style={styles.badgeDotText}>{badgeCount}</Text>
@@ -47,6 +47,7 @@ function Header({ title, onPressNotifications, badgeCount }: any) {
 export default function TrackTab() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [activeOrders, setActiveOrders] = useState<OrderDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
@@ -80,7 +81,7 @@ export default function TrackTab() {
       q,
       (snap) => {
         const list: OrderDoc[] = [];
-        snap.forEach((d) => {
+        snap.forEach((d: any) => {
           const data = d.data() as any;
           const status = (data.status || '').toLowerCase();
           const done = status.includes('delivered') || status.includes('completed') || status.includes('cancel');
@@ -132,7 +133,7 @@ export default function TrackTab() {
             return (
               <View key={stage.key} style={styles.timelineItem}>
                 <View style={[styles.timelineIcon, completed && styles.timelineIconCompleted]}>
-                  <FontAwesome5 name={stage.icon as any} size={14} color={completed ? '#fff' : '#ddd'} />
+            <FontAwesome5 name={stage.icon as any} size={14} color={completed ? '#fff' : colors.muted} />
                 </View>
                 <Text style={[styles.timelineStage, completed && styles.timelineStageCompleted]}>{stage.label}</Text>
                 {idx < stages.length - 1 && (
@@ -149,6 +150,7 @@ export default function TrackTab() {
   const renderTrackingCard = ({ item }: { item: OrderDoc }) => {
     const sKey = (item.status || 'processing').toLowerCase();
     const statusInfo = statusMap[sKey] || statusMap.processing;
+    const statusColor = isDark ? statusInfo.darkColor : statusInfo.color;
     const dateText = item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString() : '';
     return (
       <TouchableOpacity style={styles.trackCard} onPress={() => router.push(`/(tabs)/orders/${item.id}` as any)}>
@@ -158,18 +160,18 @@ export default function TrackTab() {
             <Text style={styles.trackProduct}>{item.productTitle || 'Order'}</Text>
             {dateText ? <Text style={styles.orderDate}>{dateText}</Text> : null}
           </View>
-          <View style={[styles.statusIndicator, { backgroundColor: statusInfo.color }]}>
+          <View style={[styles.statusIndicator, { backgroundColor: statusColor }]}>
             <FontAwesome5 name={statusInfo.icon as any} size={16} color="#fff" />
           </View>
         </View>
 
         <View style={styles.trackDetails}>
           <View style={styles.detailRow}>
-            <FontAwesome5 name="clock" size={14} color="#666" />
+            <FontAwesome5 name="clock" size={14} color={colors.muted} />
             <Text style={styles.detailText}>{statusInfo.label}</Text>
           </View>
           <View style={styles.detailRow}>
-            <FontAwesome5 name="wallet" size={14} color="#666" />
+            <FontAwesome5 name="wallet" size={14} color={colors.muted} />
             <Text style={styles.detailText}>{item.paymentMethod || 'Payment'}</Text>
           </View>
         </View>
@@ -181,8 +183,8 @@ export default function TrackTab() {
         ) : null}
 
         <TouchableOpacity style={styles.statusBar} onPress={() => router.push('/(tabs)/orders')}>
-          <Text style={[styles.statusLabel, { color: statusInfo.color }]}>{statusInfo.label}</Text>
-          <FontAwesome5 name="chevron-right" size={16} color="#999" />
+          <Text style={[styles.statusLabel, { color: statusColor }]}>{statusInfo.label}</Text>
+          <FontAwesome5 name="chevron-right" size={16} color={colors.muted} />
         </TouchableOpacity>
         {renderTimeline(item)}
       </TouchableOpacity>
@@ -195,12 +197,18 @@ export default function TrackTab() {
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#0B6E6B']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} />}
       >
-        <Header title="Track Delivery" onPressNotifications={() => router.push('/notifications')} badgeCount={notifCount} />
+        <Header
+          title="Track Delivery"
+          onPressNotifications={() => router.push('/notifications')}
+          badgeCount={notifCount}
+          styles={styles}
+          colors={colors}
+        />
         {toast ? (
           <View style={styles.toast}>
-            <FontAwesome5 name="bell" size={12} color="#0B6E6B" />
+            <FontAwesome5 name="bell" size={12} color={colors.primary} />
             <Text style={styles.toastText}>{toast}</Text>
           </View>
         ) : null}
@@ -209,12 +217,12 @@ export default function TrackTab() {
         ) : null}
         {loading ? (
           <View style={styles.emptyState}>
-            <ActivityIndicator color="#0B6E6B" />
+            <ActivityIndicator color={colors.primary} />
             <Text style={styles.emptySubtext}>Loading your active orders...</Text>
           </View>
         ) : activeOrders.length === 0 ? (
           <View style={styles.emptyState}>
-            <FontAwesome5 name="map-marker-alt" size={48} color="#ddd" />
+            <FontAwesome5 name="map-marker-alt" size={48} color={colors.muted} />
             <Text style={styles.emptyText}>No Active Deliveries</Text>
             <Text style={styles.emptySubtext}>Your deliveries will appear here once dispatched</Text>
           </View>
@@ -232,49 +240,51 @@ export default function TrackTab() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FAFBFB' },
-  container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 14, borderBottomColor: '#e0e0e0', borderBottomWidth: 1 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#0B6E6B' },
-  badgeDot: { position: 'absolute', top: -8, right: -8, backgroundColor: '#EF4444', borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
-  badgeDotText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  trackCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#e0e0e0', shadowColor: '#0B6E6B', shadowOpacity: 0.03, shadowRadius: 6, elevation: 1 },
-  trackHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  trackOrderNum: { fontSize: 15, fontWeight: 'bold', color: '#0B6E6B' },
-  trackProduct: { fontSize: 13, color: '#666' },
-  statusIndicator: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  trackDetails: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  detailRow: { flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 6 },
-  detailText: { fontSize: 13, color: '#333' },
-  rentalText: { fontSize: 12, color: '#475569', marginTop: 8 },
-  statusBar: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  statusLabel: { fontSize: 13, fontWeight: 'bold', marginRight: 8 },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 64, gap: 6 },
-  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#999', marginTop: 4 },
-  emptySubtext: { fontSize: 14, color: '#999', marginTop: 2 },
-  timelineContainer: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#e0e0e0' },
-  timelineTitle: { fontSize: 14, fontWeight: 'bold', color: '#1E293B', marginBottom: 12 },
-  timeline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  timelineItem: { alignItems: 'center', flex: 1 },
-  timelineIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center' },
-  timelineIconCompleted: { backgroundColor: '#0B6E6B' },
-  timelineStage: { fontSize: 12, color: '#666', marginTop: 4 },
-  timelineStageCompleted: { color: '#0B6E6B', fontWeight: 'bold' },
-  timelineConnector: { width: 32, height: 2, backgroundColor: '#ddd', alignSelf: 'center' },
-  timelineConnectorCompleted: { backgroundColor: '#0B6E6B' },
-  toast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#E6F4F3',
-    borderColor: '#0B6E6B',
-    borderWidth: 1,
-    padding: 10,
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginTop: 8,
-  },
-  toastText: { color: '#0B6E6B', fontWeight: '700', fontSize: 12, flex: 1 },
-  lastUpdated: { fontSize: 11, color: '#64748b', marginHorizontal: 16, marginTop: 6 },
-});
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    safeArea: { flex: 1, backgroundColor: colors.background },
+    container: { flex: 1, backgroundColor: colors.background },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 16, paddingVertical: 14, borderBottomColor: colors.border, borderBottomWidth: 1 },
+    headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.primary },
+    badgeDot: { position: 'absolute', top: -8, right: -8, backgroundColor: colors.danger, borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+    badgeDotText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+    trackCard: { backgroundColor: colors.surface, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border, shadowColor: colors.primary, shadowOpacity: 0.03, shadowRadius: 6, elevation: 1 },
+    trackHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    trackOrderNum: { fontSize: 15, fontWeight: 'bold', color: colors.primary },
+    trackProduct: { fontSize: 13, color: colors.muted },
+    orderDate: { fontSize: 12, color: colors.muted, marginTop: 4 },
+    statusIndicator: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+    trackDetails: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+    detailRow: { flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 6 },
+    detailText: { fontSize: 13, color: colors.text },
+    rentalText: { fontSize: 12, color: colors.muted, marginTop: 8 },
+    statusBar: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+    statusLabel: { fontSize: 13, fontWeight: 'bold', marginRight: 8 },
+    emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 64, gap: 6 },
+    emptyText: { fontSize: 18, fontWeight: 'bold', color: colors.muted, marginTop: 4 },
+    emptySubtext: { fontSize: 14, color: colors.muted, marginTop: 2 },
+    timelineContainer: { backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginTop: 10, borderWidth: 1, borderColor: colors.border },
+    timelineTitle: { fontSize: 14, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
+    timeline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    timelineItem: { alignItems: 'center', flex: 1 },
+    timelineIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center' },
+    timelineIconCompleted: { backgroundColor: colors.primary },
+    timelineStage: { fontSize: 12, color: colors.muted, marginTop: 4 },
+    timelineStageCompleted: { color: colors.primary, fontWeight: 'bold' },
+    timelineConnector: { width: 32, height: 2, backgroundColor: colors.border, alignSelf: 'center' },
+    timelineConnectorCompleted: { backgroundColor: colors.primary },
+    toast: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: colors.surface,
+      borderColor: colors.primary,
+      borderWidth: 1,
+      padding: 10,
+      borderRadius: 12,
+      marginHorizontal: 16,
+      marginTop: 8,
+    },
+    toastText: { color: colors.primary, fontWeight: '700', fontSize: 12, flex: 1 },
+    lastUpdated: { fontSize: 11, color: colors.muted, marginHorizontal: 16, marginTop: 6 },
+  });
