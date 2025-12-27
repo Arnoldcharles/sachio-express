@@ -1,15 +1,18 @@
 import { Tabs, useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { auth, db, signOut } from '../../lib/firebase';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { useTheme } from '../../lib/theme';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [currentUser, setCurrentUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [blocked, setBlocked] = useState(false);
@@ -89,7 +92,7 @@ export default function TabLayout() {
   if (!authChecked) {
     return (
       <View style={styles.blocked}>
-        <ActivityIndicator size="large" color="#0B6E6B" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.blockedText}>Checking your session...</Text>
       </View>
     );
@@ -103,7 +106,7 @@ export default function TabLayout() {
           {blockMessage}{' '}
           <Text
             style={styles.link}
-            onPress={() => Linking.openURL('mailto:arnoldcharles028@gmail.com')}
+            onPress={() => Linking.openURL('mailto:sachiomobiletoilets@gmail.com')}
           >
             contact support
           </Text>
@@ -139,8 +142,8 @@ export default function TabLayout() {
           },
         ],
         tabBarLabelStyle: styles.tabBarLabel,
-        tabBarActiveTintColor: '#0B6E6B',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.muted,
         headerShown: false,
       }}
     >
@@ -187,10 +190,11 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) =>
+  StyleSheet.create({
   tabBar: {
-    backgroundColor: '#fff',
-    borderTopColor: '#e0e0e0',
+    backgroundColor: colors.surface,
+    borderTopColor: colors.border,
     borderTopWidth: 1,
     paddingBottom: 8,
     paddingTop: 8,
@@ -199,22 +203,23 @@ const styles = StyleSheet.create({
   tabBarLabel: {
     fontSize: 12,
     marginTop: 4,
+    color: colors.muted,
   },
   blocked: {
     flex: 1,
-    backgroundColor: '#FAFBFB',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
     gap: 12,
   },
-  blockedTitle: { fontSize: 18, fontWeight: '800', color: '#0B6E6B' },
-  blockedText: { fontSize: 14, color: '#475569', textAlign: 'center' },
-  link: { color: '#0B6E6B', fontWeight: '700', textDecorationLine: 'underline' },
+  blockedTitle: { fontSize: 18, fontWeight: '800', color: colors.primary },
+  blockedText: { fontSize: 14, color: colors.muted, textAlign: 'center' },
+  link: { color: colors.primary, fontWeight: '700', textDecorationLine: 'underline' },
   loginBtn: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#0B6E6B',
+    backgroundColor: colors.primary,
     borderRadius: 10,
   },
   loginBtnText: { color: '#fff', fontWeight: '700' },

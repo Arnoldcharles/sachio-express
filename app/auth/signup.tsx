@@ -8,9 +8,11 @@ import { ensureUserProfile, signUpEmail } from '../../lib/firebase';
 import { useRouter } from 'expo-router';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
+import { useTheme } from '../../lib/theme';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -178,8 +180,8 @@ export default function SignupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAFBFB" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -208,7 +210,7 @@ export default function SignupScreen() {
             ]}
           >
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>Sachio</Text>
+              <Text style={styles.badgeText}>Sachio Mobile Toilets</Text>
             </View>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Join Sachio Mobile Toilets today</Text>

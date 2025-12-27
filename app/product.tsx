@@ -13,11 +13,13 @@ import {
   Share,
   Modal,
   TouchableWithoutFeedback,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { getProducts, Product } from "../lib/products";
 import { FontAwesome5 } from "@expo/vector-icons";
+import { useTheme } from "../lib/theme";
 import { FontAwesome } from "@expo/vector-icons";
 import { auth } from "../lib/firebase";
 
@@ -27,6 +29,7 @@ const rentish = (val?: string | null) => !!val && val.toLowerCase().includes("re
 export default function ProductPage() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [favorite, setFavorite] = useState(false);
@@ -144,7 +147,8 @@ export default function ProductPage() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
         <View style={styles.container}>
           <View style={styles.imageSkeleton} />
           <View style={styles.skeletonLine} />
@@ -155,7 +159,8 @@ export default function ProductPage() {
   }
   if (!product)
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
         <View style={[styles.container, { justifyContent: "center" }]}>
           <Text style={styles.emptyTitle}>Product not found.</Text>
           <TouchableOpacity
@@ -169,7 +174,8 @@ export default function ProductPage() {
     );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}

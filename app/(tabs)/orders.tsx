@@ -7,6 +7,7 @@ import { auth, db } from '../../lib/firebase';
 import { collection, orderBy, query, onSnapshot, where, doc, getDoc } from 'firebase/firestore';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../../lib/theme';
 
 const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
@@ -36,6 +37,8 @@ function Header({ title }: any) {
 
 export default function OrdersTab() {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [activeTab, setActiveTab] = useState<'active' | 'past' | 'cancelled'>('active');
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [currentUser, setCurrentUser] = useState<FirebaseAuthTypes.User | null>(auth.currentUser);
@@ -335,7 +338,7 @@ export default function OrdersTab() {
           </Animated.View>
         ) : (
           <View style={styles.emptyState}>
-            <FontAwesome5 name="inbox" size={48} color="#ddd" />
+            <FontAwesome5 name="inbox" size={48} color={colors.muted} />
             <Text style={styles.emptyText}>No {activeTab} orders</Text>
             <Text style={styles.emptySubtext}>When you place an order, it will appear here</Text>
           </View>
@@ -345,146 +348,147 @@ export default function OrdersTab() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFBFB',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomColor: '#e0e0e0',
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#0B6E6B' },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderBottomColor: '#e0e0e0',
-    borderBottomWidth: 1,
-    paddingHorizontal: 16,
-  },
-  tab: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: '#0B6E6B',
-  },
-  tabText: {
-    fontSize: 14,
-    color: '#999',
-    fontWeight: '500',
-  },
-  tabTextActive: {
-    color: '#0B6E6B',
-    fontWeight: 'bold',
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  orderCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#0B6E6B',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 1,
-  },
-  orderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  orderNumber: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  orderDate: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  orderProduct: {
-    fontSize: 13,
-    color: '#0B6E6B',
-    marginTop: 4,
-    fontWeight: '700',
-  },
-  metaLine: {
-    fontSize: 12,
-    color: '#475569',
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  orderFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  orderTotal: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#0B6E6B',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  loadingState: {
-    padding: 32,
-    alignItems: 'center',
-    gap: 10,
-  },
-  loginBtn: {
-    marginTop: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#0B6E6B',
-    borderRadius: 10,
-  },
-  loginBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-});
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    safeArea: { flex: 1, backgroundColor: colors.background },
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomColor: colors.border,
+      borderBottomWidth: 1,
+    },
+    headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.primary },
+    tabsContainer: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface,
+      borderBottomColor: colors.border,
+      borderBottomWidth: 1,
+      paddingHorizontal: 16,
+    },
+    tab: {
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderBottomWidth: 3,
+      borderBottomColor: 'transparent',
+    },
+    tabActive: {
+      borderBottomColor: colors.primary,
+    },
+    tabText: {
+      fontSize: 14,
+      color: colors.muted,
+      fontWeight: '500',
+    },
+    tabTextActive: {
+      color: colors.primary,
+      fontWeight: 'bold',
+    },
+    listContent: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    orderCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: colors.primary,
+      shadowOpacity: 0.04,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 8,
+      elevation: 1,
+    },
+    orderHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+    },
+    orderNumber: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.text,
+    },
+    orderDate: {
+      fontSize: 12,
+      color: colors.muted,
+      marginTop: 4,
+    },
+    orderProduct: {
+      fontSize: 13,
+      color: colors.primary,
+      marginTop: 4,
+      fontWeight: '700',
+    },
+    metaLine: {
+      fontSize: 12,
+      color: colors.muted,
+      marginTop: 2,
+    },
+    statusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 6,
+      borderWidth: 1,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    orderFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    orderTotal: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.primary,
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+    },
+    emptyText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginTop: 16,
+    },
+    emptySubtext: {
+      fontSize: 14,
+      color: colors.muted,
+      marginTop: 8,
+      textAlign: 'center',
+    },
+    loadingState: {
+      padding: 32,
+      alignItems: 'center',
+      gap: 10,
+    },
+    loginBtn: {
+      marginTop: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+    },
+    loginBtnText: {
+      color: '#fff',
+      fontWeight: '700',
+    },
+  });
 
 

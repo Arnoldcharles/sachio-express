@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, ScrollView, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, ScrollView, Modal, TextInput, StatusBar } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { getProducts, Product } from '../lib/products';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { WebView } from 'react-native-webview';
 import axios from 'axios';
 import { auth, db, getUserProfile } from '../lib/firebase';
 import { addDoc, collection, serverTimestamp, doc, setDoc } from 'firebase/firestore';
+import { useTheme } from '../lib/theme';
 import { Animated, Easing } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -18,6 +19,7 @@ export default function Checkout() {
   const FLW_SECRET_KEY = process.env.EXPO_PUBLIC_FLW_SECRET_KEY ?? 'FLWSECK_TEST-4e40dea47380c21b7a9bcdff17b79aba-X';
   const { id, type } = useLocalSearchParams();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [confirmed, setConfirmed] = useState(false);
   const [flutterwaveUrl, setFlutterwaveUrl] = useState<string | null>(null);
   const [txRef, setTxRef] = useState<string | null>(null);
@@ -154,7 +156,8 @@ export default function Checkout() {
 
   if (confirmed) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
           <View style={styles.breadcrumbsRow}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}><FontAwesome5 name="arrow-left" size={18} color="#0B6E6B" /></TouchableOpacity>
@@ -171,7 +174,8 @@ export default function Checkout() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}

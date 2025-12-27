@@ -14,6 +14,7 @@ import {
   Alert,
   Modal,
   Animated,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -36,6 +37,7 @@ import {
   Category,
 } from "../../lib/products";
 import { auth, db } from "../../lib/firebase";
+import { useTheme } from "../../lib/theme";
 
 const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: "Nunito" }, props.style]} />
@@ -150,6 +152,7 @@ const safeDate = (value: string) => {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [products, setProducts] = useState<Product[]>([]);
   const [filtered, setFiltered] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -684,9 +687,10 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={{ paddingBottom: 24 }}
         refreshControl={
           <RefreshControl
@@ -765,7 +769,7 @@ export default function HomeScreen() {
         >
           <FontAwesome5 name="search" size={14} color="#94a3b8" />
           <TextInput
-            placeholder="Search for products�?I�?I"
+            placeholder="Search for products..."
             placeholderTextColor="#94a3b8"
             style={styles.searchInput}
             value={search}
@@ -1516,8 +1520,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   paymentBtnText: { color: "#fff", fontWeight: "800", fontSize: 14 },});
-
-
 
 
 

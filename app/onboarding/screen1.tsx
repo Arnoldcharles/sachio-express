@@ -1,12 +1,15 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import React, { useEffect } from 'react';
-import { View, Image, StyleSheet, Text } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { View, Image, StyleSheet, Text, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Button from '../../components/Button';
+import { useTheme } from '../../lib/theme';
 
 export default function OnboardingScreen1() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -17,6 +20,7 @@ export default function OnboardingScreen1() {
   }, [router]);
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.container}>
       <Image source={require('../../assets/images/onboarding/logo 1.png')} style={styles.logo} />
       <Text style={styles.title}>Sachio Mobile Toilets</Text>
@@ -27,32 +31,33 @@ export default function OnboardingScreen1() {
   );
 }
 
-const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FAFBFB',
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#0B6E6B',
-    marginBottom: 8,
-    fontFamily: 'Nunito',
-  },
-  tagline: {
-    fontSize: 16,
-    color: '#1E293B',
-    marginBottom: 32,
-    fontFamily: 'Nunito',
-  },
-});
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    safeArea: { flex: 1, backgroundColor: colors.background },
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    logo: {
+      width: 120,
+      height: 120,
+      marginBottom: 32,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: colors.primary,
+      marginBottom: 8,
+      fontFamily: 'Nunito',
+    },
+    tagline: {
+      fontSize: 16,
+      color: colors.text,
+      marginBottom: 32,
+      fontFamily: 'Nunito',
+    },
+  });
 
 

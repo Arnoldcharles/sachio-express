@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TextInput } from 'react-native';
 import { getProducts, Product } from '../lib/products';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../lib/theme';
 
 const BUY_TAGS = ['buy toilet', 'buy', 'purchase', 'sale'];
 
@@ -20,6 +21,7 @@ function productMatchesCategory(product: Product, tags: string[]) {
 
 export default function Buy() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -40,7 +42,8 @@ export default function Buy() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.container}>
       <Text style={styles.title}>Buy Toilet</Text>
       <View style={styles.searchBarContainer}>

@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, StyleSheet, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, StyleSheet, TextInput, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getProducts, Product } from '../lib/products';
+import { useTheme } from '../lib/theme';
 
 export default function Catalog() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -35,7 +37,8 @@ export default function Catalog() {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.container}>
         <Text style={styles.title}>All Products</Text>
         <TextInput

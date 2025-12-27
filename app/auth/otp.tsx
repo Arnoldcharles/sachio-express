@@ -1,11 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, StatusBar } from 'react-native';
 import Button from '../../components/Button';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTheme } from '../../lib/theme';
 
 export default function OtpScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();\n  const styles = useMemo(() => createStyles(colors), [colors]);
   const params = useLocalSearchParams() as any;
   const { email, phone } = params || {};
   const [otp, setOtp] = useState('');
@@ -53,8 +55,8 @@ export default function OtpScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAFBFB" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.logoPill}>
@@ -75,7 +77,7 @@ export default function OtpScreen() {
           >
             {otpDigits.map((d, idx) => (
               <View key={idx} style={styles.otpBox}>
-                <Text style={styles.otpChar}>{d.trim() ? d : '•'}</Text>
+                <Text style={styles.otpChar}>{d.trim() ? d : 'â€¢'}</Text>
               </View>
             ))}
           </TouchableOpacity>
@@ -119,95 +121,96 @@ export default function OtpScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFBFB',
-    paddingHorizontal: 24,
-    paddingVertical: 36,
-    gap: 16,
-  },
-  header: { gap: 6, marginBottom: 4 },
-  logoPill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#E6F4F3',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#D1E7E5',
-  },
-  logoPillText: { color: '#0B6E6B', fontWeight: '800', letterSpacing: 0.5 },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0B6E6B',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#475569',
-    lineHeight: 20,
-  },
-  highlight: { fontWeight: '700', color: '#0B6E6B' },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#0B6E6B',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 2,
-    gap: 12,
-  },
-  label: { fontSize: 14, fontWeight: '700', color: '#1E293B' },
-  otpRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 6,
-    justifyContent: 'space-between',
-  },
-  otpBox: {
-    flex: 1,
-    height: 60,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#dce0e8',
-    backgroundColor: '#F8FAFC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#0B6E6B',
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-  },
-  otpChar: { fontSize: 20, fontWeight: '800', color: '#0B6E6B', letterSpacing: 1 },
-  hiddenInput: { position: 'absolute', opacity: 0, height: 0, width: 0 },
-  resendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  resendText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  resendLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0B6E6B',
-  },
-  disabled: { opacity: 0.5 },
-  backLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0B6E6B',
-    textAlign: 'center',
-  },
-  footer: { alignItems: 'center', gap: 6 },
-  helperText: { color: '#475569', fontSize: 12, textAlign: 'center' },
-});
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    safeArea: { flex: 1, backgroundColor: colors.background },
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingHorizontal: 24,
+      paddingVertical: 36,
+      gap: 16,
+    },
+    header: { gap: 6, marginBottom: 4 },
+    logoPill: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: colors.surface,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    logoPillText: { color: colors.primary, fontWeight: '800', letterSpacing: 0.5 },
+    title: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: colors.primary,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: colors.muted,
+      lineHeight: 20,
+    },
+    highlight: { fontWeight: '700', color: colors.primary },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: colors.primary,
+      shadowOpacity: 0.05,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 8,
+      elevation: 2,
+      gap: 12,
+    },
+    label: { fontSize: 14, fontWeight: '700', color: colors.text },
+    otpRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 6,
+      justifyContent: 'space-between',
+    },
+    otpBox: {
+      flex: 1,
+      height: 60,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: colors.primary,
+      shadowOpacity: 0.03,
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 4,
+    },
+    otpChar: { fontSize: 20, fontWeight: '800', color: colors.primary, letterSpacing: 1 },
+    hiddenInput: { position: 'absolute', opacity: 0, height: 0, width: 0 },
+    resendContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 6,
+    },
+    resendText: {
+      fontSize: 14,
+      color: colors.muted,
+    },
+    resendLink: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    disabled: { opacity: 0.5 },
+    backLink: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+      textAlign: 'center',
+    },
+  });
+
+

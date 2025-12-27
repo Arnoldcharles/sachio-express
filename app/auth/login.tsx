@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
 import Button from '../../components/Button';
+import { useTheme } from '../../lib/theme';
 import { ensureUserProfile, signInEmail, getUserProfile, sendPasswordReset, signOut } from '../../lib/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
@@ -16,6 +17,7 @@ const Text = (props: React.ComponentProps<typeof RNText>) => (
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -148,8 +150,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAFBFB" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -181,7 +183,7 @@ export default function LoginScreen() {
                 <FontAwesome5 name="toilet" size={18} color="#0B6E6B" />
               </View>
               <View>
-                <Text style={styles.brand}>Sachio Toilets</Text>
+                <Text style={styles.brand}>Sachio Mobile Toilets</Text>
                 <Text style={styles.brandSub}>Clean · Timely · Trusted</Text>
               </View>
             </View>

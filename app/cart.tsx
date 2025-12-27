@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -18,6 +19,7 @@ import { WebView } from "react-native-webview";
 import axios from "axios";
 import { auth, db, getUserProfile } from "../lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useTheme } from "../lib/theme";
 
 type CartItem = {
   id: string;
@@ -32,6 +34,7 @@ const PAYMENT_FAILED_KEY = "payment_failed";
 
 export default function CartScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [flutterwaveUrl, setFlutterwaveUrl] = useState<string | null>(null);
@@ -243,7 +246,8 @@ export default function CartScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.circleBtn}

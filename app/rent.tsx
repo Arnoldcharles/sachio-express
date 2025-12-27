@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Modal, Alert, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Modal, Alert, Pressable, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { auth, db, getUserProfile } from '../lib/firebase';
 import { getProducts } from '../lib/products';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTheme } from '../lib/theme';
 
 const states = [
   'Abia',
@@ -94,6 +95,7 @@ const safeDate = (value: string) => {
 
 export default function RentScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const { id } = useLocalSearchParams();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -279,7 +281,8 @@ export default function RentScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 6, marginRight: 8 }}>

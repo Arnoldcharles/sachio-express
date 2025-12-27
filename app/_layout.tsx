@@ -4,10 +4,12 @@ import { ActivityIndicator, Text, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ToastProvider } from "../components/Toast";
 import { useFonts } from "expo-font";
+import { ThemeProvider, useTheme } from "../lib/theme";
 
-export default function RootLayout() {
+function RootLayoutInner() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState(false);
+  const { colors } = useTheme();
   const [fontsLoaded, fontError] = useFonts({
     Nunito: require("../assets/fonts/Nunito-Variable.ttf"),
   });
@@ -15,10 +17,16 @@ export default function RootLayout() {
   if (fontsLoaded) {
     const TextAny = Text as unknown as { defaultProps?: { style?: any } };
     TextAny.defaultProps = TextAny.defaultProps || {};
-    TextAny.defaultProps.style = [{ fontFamily: "Nunito" }, TextAny.defaultProps.style];
+    TextAny.defaultProps.style = [
+      { fontFamily: "Nunito", color: colors.text },
+      TextAny.defaultProps.style,
+    ];
     const TextInputAny = TextInput as unknown as { defaultProps?: { style?: any } };
     TextInputAny.defaultProps = TextInputAny.defaultProps || {};
-    TextInputAny.defaultProps.style = [{ fontFamily: "Nunito" }, TextInputAny.defaultProps.style];
+    TextInputAny.defaultProps.style = [
+      { fontFamily: "Nunito", color: colors.text },
+      TextInputAny.defaultProps.style,
+    ];
   }
 
   useEffect(() => {
@@ -40,8 +48,15 @@ export default function RootLayout() {
 
   if (isLoading || (!fontsLoaded && !fontError)) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FAFBFB" }}>
-        <ActivityIndicator size="large" color="#0B6E6B" />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -74,5 +89,13 @@ export default function RootLayout() {
         )}
       </Stack>
     </ToastProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutInner />
+    </ThemeProvider>
   );
 }
