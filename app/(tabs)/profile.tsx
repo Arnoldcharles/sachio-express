@@ -230,7 +230,7 @@ export default function ProfileTab() {
               </View>
               {addresses.map((a, i) => (
                 <View key={i} style={styles.addressRow}>
-                  <View style={{ flex: 1 }}>
+                  <View style={styles.addressTextWrap}>
                     <Text style={styles.addressItem}>{a}</Text>
                   </View>
                   <View style={styles.addressActions}>
@@ -533,6 +533,12 @@ const createStyles = (colors: any) =>
     fontSize: 13,
     color: colors.muted,
     marginBottom: 2,
+    textAlign: 'center',
+  },
+  addressTextWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addressBlock: {
     marginTop: 12,

@@ -487,7 +487,8 @@ export default function HomeScreen() {
         toiletsRequired: rentToilets,
         referral: rentReferral,
         note: rentComments,
-        createdAt: serverTimestamp(),
+        createdAt: new Date(),
+        createdAtServer: serverTimestamp(),
       };
       await addDoc(collection(db, "orders"), orderData);
       setRentName("");
@@ -673,7 +674,11 @@ export default function HomeScreen() {
           {item.title}
         </Text>
         {!hidePrice ? (
-          <Text style={styles.gridPrice}>NGN {item.price || "-"} </Text>
+          <Text style={styles.gridPrice}>
+            {item.price != null && item.price !== ""
+              ? `NGN ${Number(item.price).toLocaleString()}`
+              : "NGN -"}
+          </Text>
         ) : null}
         {outOfStock ? (
           <Text style={styles.stockBadge}>Out of stock</Text>
@@ -789,7 +794,7 @@ export default function HomeScreen() {
             contentContainerStyle={styles.chipRow}
           >
             <CategoryChip
-              label="All"
+              label="Buy"
               active={selectedCategory === "All"}
               onPress={() => setSelectedCategory("All")}
               styles={styles}

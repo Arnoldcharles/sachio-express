@@ -26,18 +26,18 @@ type OrderNote = {
 
 type Section = { title: string; data: OrderNote[] };
 
-const statusColors: Record<string, { color: string }> = {
-  cancelled_by_admin: { color: '#B91C1C' },
-  cancelled: { color: '#B91C1C' },
-  failed: { color: '#B91C1C' },
-  delivered: { color: '#16A34A' },
-  completed: { color: '#16A34A' },
-  paid: { color: '#16A34A' },
-  success: { color: '#16A34A' },
-  processing: { color: '#0F172A' },
-  dispatched: { color: '#0F172A' },
-  in_transit: { color: '#0F172A' },
-  returning: { color: '#0F172A' },
+const statusColors: Record<string, { color: string; darkColor: string }> = {
+  cancelled_by_admin: { color: '#B91C1C', darkColor: '#F87171' },
+  cancelled: { color: '#B91C1C', darkColor: '#F87171' },
+  failed: { color: '#B91C1C', darkColor: '#F87171' },
+  delivered: { color: '#16A34A', darkColor: '#22C55E' },
+  completed: { color: '#16A34A', darkColor: '#22C55E' },
+  paid: { color: '#16A34A', darkColor: '#22C55E' },
+  success: { color: '#16A34A', darkColor: '#22C55E' },
+  processing: { color: '#0F172A', darkColor: '#E5E7EB' },
+  dispatched: { color: '#0F172A', darkColor: '#E5E7EB' },
+  in_transit: { color: '#0F172A', darkColor: '#E5E7EB' },
+  returning: { color: '#0F172A', darkColor: '#E5E7EB' },
 };
 
 function formatHeader(date: Date) {
@@ -59,6 +59,7 @@ function timeAgo(date?: Date) {
 export default function NotificationsPage() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [notes, setNotes] = useState<OrderNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
@@ -110,7 +111,8 @@ export default function NotificationsPage() {
     const dateObj = item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000) : undefined;
     const ago = timeAgo(dateObj);
     const statusKey = (item.status || '').toLowerCase();
-    const statusStyle = statusColors[statusKey] || { color: '#0F172A' };
+    const statusStyle = statusColors[statusKey] || { color: '#0F172A', darkColor: '#E5E7EB' };
+    const statusColor = isDark ? statusStyle.darkColor : statusStyle.color;
     const thumb = item.items && item.items[0]?.imageUrl;
     const title = item.productTitle || item.items?.[0]?.title || 'Order update';
 
@@ -121,11 +123,11 @@ export default function NotificationsPage() {
             {thumb ? (
               <Image source={{ uri: thumb }} style={styles.thumb} resizeMode="cover" />
             ) : (
-              <FontAwesome5 name="box" size={18} color="#94a3b8" />
+            <FontAwesome5 name="box" size={18} color={colors.muted} />
             )}
           </View>
           <View style={{ flex: 1, gap: 4 }}>
-            {item.status ? <Text style={[styles.status, statusStyle]}>{item.status.replace(/_/g, ' ')}</Text> : null}
+            {item.status ? <Text style={[styles.status, { color: statusColor }]}>{item.status.replace(/_/g, ' ')}</Text> : null}
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.meta}>2 items</Text>
             <Text style={styles.time}>{ago}</Text>
@@ -143,7 +145,7 @@ export default function NotificationsPage() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 6, marginRight: 8 }}>
-          <FontAwesome5 name="arrow-left" size={18} color="#0B6E6B" />
+          <FontAwesome5 name="arrow-left" size={18} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         <View style={{ width: 20 }} />
@@ -151,11 +153,11 @@ export default function NotificationsPage() {
       <View style={styles.container}>
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator color="#0B6E6B" />
+            <ActivityIndicator color={colors.primary} />
           </View>
         ) : !auth.currentUser ? (
           <View style={styles.center}>
-            <FontAwesome5 name="lock" size={32} color="#94a3b8" />
+            <FontAwesome5 name="lock" size={32} color={colors.muted} />
             <Text style={styles.empty}>Login to see your notifications.</Text>
             <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/auth/login')}>
               <Text style={styles.loginBtnText}>Go to Login</Text>
@@ -163,7 +165,7 @@ export default function NotificationsPage() {
           </View>
         ) : notes.length === 0 ? (
           <View style={styles.center}>
-            <FontAwesome5 name="bell-slash" size={32} color="#94a3b8" />
+            <FontAwesome5 name="bell-slash" size={32} color={colors.muted} />
             <Text style={styles.empty}>No updates yet.</Text>
           </View>
         ) : (
@@ -183,114 +185,115 @@ export default function NotificationsPage() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FAFBFB' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    backgroundColor: '#fff',
-  },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#0B6E6B' },
-  container: { flex: 1, backgroundColor: '#FAFBFB' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  empty: { color: '#475569', fontWeight: '600' },
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#475569',
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    marginBottom: 8,
-    shadowColor: '#0B6E6B',
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  thumbWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 10,
-    backgroundColor: '#F3F7F7',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  thumb: { width: '100%', height: '100%' },
-  status: { fontSize: 13, fontWeight: '800', textTransform: 'capitalize' },
-  title: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  meta: { fontSize: 12, color: '#475569' },
-  time: { fontSize: 11, color: '#94a3b8' },
-  detailBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#F8FAFC',
-  },
-  detailText: { fontSize: 12, fontWeight: '700', color: '#0B6E6B' },
-  loginBtn: {
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#0B6E6B',
-    borderRadius: 10,
-  },
-  loginBtnText: { color: '#fff', fontWeight: '700' },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  modalCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0B6E6B',
-    marginBottom: 6,
-  },
-  modalText: {
-    fontSize: 14,
-    color: '#0F172A',
-    marginBottom: 14,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 10,
-  },
-  outlineBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  outlineBtnText: {
-    color: '#0B6E6B',
-    fontWeight: '700',
-  },
-});
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    safeArea: { flex: 1, backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: colors.primary },
+    container: { flex: 1, backgroundColor: colors.background },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+    empty: { color: colors.muted, fontWeight: '600' },
+    sectionHeader: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.muted,
+      marginTop: 6,
+      marginBottom: 4,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: 8,
+      shadowColor: colors.primary,
+      shadowOpacity: 0.03,
+      shadowOffset: { width: 0, height: 3 },
+      shadowRadius: 6,
+      elevation: 1,
+    },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    thumbWrap: {
+      width: 52,
+      height: 52,
+      borderRadius: 10,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    thumb: { width: '100%', height: '100%' },
+    status: { fontSize: 13, fontWeight: '800', textTransform: 'capitalize' },
+    title: { fontSize: 14, fontWeight: '700', color: colors.text },
+    meta: { fontSize: 12, color: colors.muted },
+    time: { fontSize: 11, color: colors.muted },
+    detailBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    detailText: { fontSize: 12, fontWeight: '700', color: colors.primary },
+    loginBtn: {
+      marginTop: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+    },
+    loginBtnText: { color: '#fff', fontWeight: '700' },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      padding: 16,
+    },
+    modalCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modalTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: colors.primary,
+      marginBottom: 6,
+    },
+    modalText: {
+      fontSize: 14,
+      color: colors.text,
+      marginBottom: 14,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 10,
+    },
+    outlineBtn: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    outlineBtnText: {
+      color: colors.primary,
+      fontWeight: '700',
+    },
+  });

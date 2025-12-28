@@ -21,6 +21,7 @@ type OrderItem = {
   priceSetAt?: { seconds: number; nanoseconds: number };
   expiresAt?: { seconds: number; nanoseconds: number };
   price?: number | string;
+  total?: number | string;
   paymentMethod?: string;
   type?: string;
   amount?: number | string;
@@ -274,15 +275,20 @@ export default function OrdersTab() {
       }
       return null;
     };
+    const numTotal = toNumber(item.total);
     const numAmount = toNumber(item.amount);
     const numPrice = toNumber(item.price);
     const total =
-      numAmount != null
+      numTotal != null
+        ? `NGN ${numTotal.toLocaleString()}`
+        : numAmount != null
         ? `NGN ${numAmount.toLocaleString()}`
         : numPrice != null
         ? `NGN ${numPrice.toLocaleString()}`
         : item.price
         ? `NGN ${item.price}`
+        : item.total
+        ? `NGN ${item.total}`
         : 'NGN -';
     const statusNorm = (item.status || '-').toLowerCase();
     const waitingPrice = numAmount == null && numPrice == null;

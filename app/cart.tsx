@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+﻿import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   TextInput,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FontAwesome5, FontAwesome } from "@expo/vector-icons";
@@ -35,6 +35,8 @@ const PAYMENT_FAILED_KEY = "payment_failed";
 export default function CartScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+  const insets = useSafeAreaInsets();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [flutterwaveUrl, setFlutterwaveUrl] = useState<string | null>(null);
@@ -253,22 +255,22 @@ export default function CartScreen() {
           style={styles.circleBtn}
           onPress={() => router.back()}
         >
-          <FontAwesome5 name="arrow-left" size={16} color="#0B6E6B" />
+          <FontAwesome5 name="arrow-left" size={16} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.title}>Cart</Text>
         <TouchableOpacity style={styles.circleBtn}>
-          <FontAwesome name="heart-o" size={16} color="#0B6E6B" />
+          <FontAwesome name="heart-o" size={16} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.loader}>
-          <ActivityIndicator color="#0B6E6B" size="large" />
-          <Text style={styles.loaderText}>Loading cart…</Text>
+          <ActivityIndicator color={colors.primary} size="large" />
+          <Text style={styles.loaderText}>Loading cart...</Text>
         </View>
       ) : items.length === 0 ? (
         <View style={styles.empty}>
-          <FontAwesome5 name="shopping-basket" size={32} color="#0B6E6B" />
+          <FontAwesome5 name="shopping-basket" size={32} color={colors.primary} />
           <Text style={styles.emptyTitle}>Your cart is empty</Text>
           <TouchableOpacity
             style={styles.outlineBtn}
@@ -283,7 +285,7 @@ export default function CartScreen() {
             style={styles.scroll}
             contentContainerStyle={{
               paddingHorizontal: 16,
-              paddingBottom: 140,
+              paddingBottom: 140 + insets.bottom,
               gap: 12,
             }}
             showsVerticalScrollIndicator={false}
@@ -299,14 +301,18 @@ export default function CartScreen() {
                   />
                 ) : (
                   <View style={[styles.thumb, styles.thumbFallback]}>
-                    <FontAwesome5 name="toilet" size={26} color="#0B6E6B" />
+                    <FontAwesome5 name="toilet" size={26} color={colors.primary} />
                   </View>
                 )}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.itemTitle} numberOfLines={2}>
                     {item.title}
                   </Text>
-                  <Text style={styles.itemPrice}>NGN {item.price}</Text>
+                  <Text style={styles.itemPrice}>
+                    {item.price != null && item.price !== ""
+                      ? `NGN ${Number(item.price).toLocaleString()}`
+                      : "NGN -"}
+                  </Text>
                 </View>
                 <View style={styles.qtyControl}>
                   <TouchableOpacity
@@ -327,7 +333,7 @@ export default function CartScreen() {
                   onPress={() => removeItem(item.id)}
                   style={styles.removeBtn}
                 >
-                  <FontAwesome5 name="times" size={14} color="#94a3b8" />
+                  <FontAwesome5 name="times" size={14} color={colors.muted} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -348,13 +354,13 @@ export default function CartScreen() {
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Sub Total</Text>
                 <Text style={styles.totalValue}>
-                  ₦{total.toLocaleString()}
+                  NGN {total.toLocaleString()}
                 </Text>
               </View>
             </View>
           </ScrollView>
 
-          <View style={styles.footer}>
+          <View style={[styles.footer, { paddingBottom: 12 + insets.bottom }]}>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>
                 Total ({items.length} item{items.length > 1 ? "s" : ""}):
@@ -371,35 +377,35 @@ export default function CartScreen() {
                   value={country}
                   onChangeText={setCountry}
                   style={styles.input}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                 />
                 <TextInput
                   placeholder="Street address"
                   value={address}
                   onChangeText={setAddress}
                   style={styles.input}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                 />
                 <TextInput
                   placeholder="Town/City"
                   value={city}
                   onChangeText={setCity}
                   style={styles.input}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                 />
                 <TextInput
                   placeholder="State"
                   value={stateField}
                   onChangeText={setStateField}
                   style={styles.input}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                 />
                 <TextInput
                   placeholder="+234 Your mobile number"
                   value={phone}
                   onChangeText={setPhone}
                   style={styles.input}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                   keyboardType="phone-pad"
                 />
                 <TextInput
@@ -407,7 +413,7 @@ export default function CartScreen() {
                   value={email}
                   onChangeText={setEmail}
                   style={styles.input}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
@@ -419,7 +425,7 @@ export default function CartScreen() {
                   value={note}
                   onChangeText={setNote}
                   style={[styles.input, { height: 70 }]}
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.muted}
                   multiline
                 />
               </View>
@@ -492,212 +498,217 @@ export default function CartScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8F9FB" },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 6,
-  },
-  circleBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#E6F4F3",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#D1E7E5",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#0F172A",
-  },
-  loader: { flex: 1, justifyContent: "center", alignItems: "center", gap: 8 },
-  loaderText: { color: "#475569", fontWeight: "600" },
-  empty: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-    padding: 24,
-  },
-  emptyTitle: { fontSize: 16, fontWeight: "800", color: "#0B6E6B" },
-  outlineBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#0B6E6B",
-    backgroundColor: "#E6F4F3",
-  },
-  outlineBtnText: { color: "#0B6E6B", fontWeight: "700" },
-  scroll: { flex: 1 },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    shadowColor: "#0B6E6B",
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 1,
-  },
-  greenDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#0B6E6B",
-  },
-  thumb: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  thumbFallback: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F3F7F7",
-  },
-  itemTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#0F172A",
-    marginBottom: 4,
-  },
-  itemPrice: { fontSize: 13, fontWeight: "700", color: "#0B6E6B" },
-  qtyControl: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#F3F7F7",
-    borderRadius: 14,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  qtyBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  qtyBtnText: { color: "#0B6E6B", fontWeight: "800", fontSize: 14 },
-  qtyText: {
-    fontWeight: "800",
-    color: "#0F172A",
-    minWidth: 20,
-    textAlign: "center",
-  },
-  removeBtn: { padding: 6 },
-  footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  totalLabel: { color: "#475569", fontWeight: "600" },
-  totalValue: { color: "#0B6E6B", fontWeight: "800", fontSize: 16 },
-  checkoutBtn: {
-    backgroundColor: "#F6B22F",
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-  },
-  checkoutText: { color: "#fff", fontWeight: "800", fontSize: 16 },
-  summaryCard: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#e6e6e6",
-    shadowColor: "#0B6E6B",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-    gap: 8,
-  },
-  webviewContainer: {
-    height: 520,
-    borderWidth: 1,
-    borderColor: "#cfdede",
-    borderRadius: 14,
-    overflow: "hidden",
-    marginTop: 8,
-  },
-  successBox: {
-    backgroundColor: "#F0FDF4",
-    borderColor: "#BBF7D0",
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 8,
-  },
-  successTitle: { color: "#166534", fontWeight: "800" },
-  successSub: { color: "#166534", fontSize: 12 },
-  formCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    shadowColor: "#0B6E6B",
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 1,
-    marginTop: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#dce0e8",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 10,
-    color: "#0f172a",
-  },
-  helperTextSmall: {
-    fontSize: 12,
-    color: "#64748b",
-    marginTop: 10,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-});
+const createStyles = (colors: any, isDark: boolean) =>
+  StyleSheet.create({
+    safeArea: { flex: 1, backgroundColor: colors.background },
+    topBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 6,
+    },
+    circleBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surface,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "800",
+      color: colors.text,
+    },
+    loader: { flex: 1, justifyContent: "center", alignItems: "center", gap: 8 },
+    loaderText: { color: colors.muted, fontWeight: "600" },
+    empty: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 12,
+      padding: 24,
+    },
+    emptyTitle: { fontSize: 16, fontWeight: "800", color: colors.primary },
+    outlineBtn: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      backgroundColor: colors.surface,
+    },
+    outlineBtnText: { color: colors.primary, fontWeight: "700" },
+    scroll: { flex: 1 },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      padding: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: isDark ? "#000" : colors.primary,
+      shadowOpacity: isDark ? 0.2 : 0.04,
+      shadowRadius: 8,
+      elevation: 1,
+    },
+    greenDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: colors.primary,
+    },
+    thumb: {
+      width: 64,
+      height: 64,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    thumbFallback: {
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+    },
+    itemTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.text,
+      marginBottom: 4,
+    },
+    itemPrice: { fontSize: 13, fontWeight: "700", color: colors.primary },
+    qtyControl: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    qtyBtn: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    qtyBtnText: { color: colors.primary, fontWeight: "800", fontSize: 14 },
+    qtyText: {
+      fontWeight: "800",
+      color: colors.text,
+      minWidth: 20,
+      textAlign: "center",
+    },
+    removeBtn: { padding: 6 },
+    footer: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 10,
+    },
+    totalRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    totalLabel: { color: colors.muted, fontWeight: "600" },
+    totalValue: { color: colors.primary, fontWeight: "800", fontSize: 16 },
+    checkoutBtn: {
+      backgroundColor: isDark ? "#FBBF24" : "#F6B22F",
+      paddingVertical: 14,
+      borderRadius: 14,
+      alignItems: "center",
+    },
+    checkoutText: { color: "#fff", fontWeight: "800", fontSize: 16 },
+    summaryCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: isDark ? "#000" : colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.2 : 0.03,
+      shadowRadius: 4,
+      elevation: 1,
+      gap: 8,
+    },
+    webviewContainer: {
+      height: 520,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      overflow: "hidden",
+      marginTop: 8,
+    },
+    successBox: {
+      backgroundColor: isDark ? "#14321f" : "#F0FDF4",
+      borderColor: isDark ? "#166534" : "#BBF7D0",
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginTop: 8,
+    },
+    successTitle: { color: isDark ? "#86efac" : "#166534", fontWeight: "800" },
+    successSub: { color: isDark ? "#86efac" : "#166534", fontSize: 12 },
+    formCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: isDark ? "#000" : colors.primary,
+      shadowOpacity: isDark ? 0.2 : 0.03,
+      shadowOffset: { width: 0, height: 3 },
+      shadowRadius: 6,
+      elevation: 1,
+      marginTop: 8,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginTop: 10,
+      color: colors.text,
+      backgroundColor: colors.surface,
+    },
+    helperTextSmall: {
+      fontSize: 12,
+      color: colors.muted,
+      marginTop: 10,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.text,
+    },
+  });
+
+
+
 
 
 

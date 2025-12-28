@@ -224,7 +224,8 @@ export default function RentScreen() {
         toiletsRequired,
         referral,
         note,
-        createdAt: serverTimestamp(),
+        createdAt: new Date(),
+        createdAtServer: serverTimestamp(),
       };
       await addDoc(collection(db, 'orders'), orderData);
       router.push('/(tabs)/orders');

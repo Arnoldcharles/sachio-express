@@ -339,12 +339,18 @@ export default function ProductPage() {
                 </View>
               </View>
             </View>
-            {!isRentProduct ? (
-              <Text style={styles.priceLarge}>
-                {product.price ? `NGN ${product.price}` : "Contact"}
-              </Text>
-            ) : null}
           </View>
+          {!isRentProduct ? (
+            <View style={styles.pricePillRow}>
+              <View style={styles.pricePill}>
+                <Text style={styles.priceLarge}>
+                  {product.price != null && product.price !== ""
+                    ? `NGN ${Number(product.price).toLocaleString()}`
+                    : "Contact"}
+                </Text>
+              </View>
+            </View>
+          ) : null}
 
           {outOfStock ? (
             <View style={styles.alertBox}>
@@ -483,7 +489,9 @@ export default function ProductPage() {
                     {!rentish(prod.category) &&
                     !(prod.categories || []).some(rentish) ? (
                       <Text style={styles.relatedPrice} numberOfLines={1}>
-                        {prod.price ? `NGN ${prod.price}` : "View"}
+                        {prod.price != null && prod.price !== ""
+                          ? `NGN ${Number(prod.price).toLocaleString()}`
+                          : "View"}
                       </Text>
                     ) : null}
                   </TouchableOpacity>
@@ -696,13 +704,13 @@ const createStyles = (colors: any, isDark: boolean) =>
       color: colors.primary,
       fontWeight: "600",
     },
-    title: {
-      fontSize: 20,
-      fontWeight: "800",
-      marginBottom: 6,
-      color: colors.text,
-      textAlign: "left",
-    },
+  title: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 6,
+    color: colors.text,
+    textAlign: "left",
+  },
     price: {
       fontSize: 20,
       color: colors.primary,
@@ -996,17 +1004,29 @@ const createStyles = (colors: any, isDark: boolean) =>
       shadowRadius: 10,
       elevation: 2,
     },
-    titleRow: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 10,
-      marginBottom: 8,
-    },
-    priceLarge: {
-      fontSize: 20,
-      fontWeight: "800",
-      color: colors.primary,
-    },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 8,
+  },
+  pricePillRow: {
+    marginBottom: 10,
+  },
+  priceLarge: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.primary,
+  },
+  pricePill: {
+    alignSelf: "flex-start",
+    backgroundColor: isDark ? "#0f1f1e" : "#E6F4F3",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
     moreLink: {
       color: colors.primary,
       fontWeight: "700",
