@@ -4,7 +4,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { auth, ensureUserProfile, getUserProfile, signOut, db } from '../../lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { useToast } from '../../components/Toast';
 import { useTheme } from '../../lib/theme';
 
@@ -22,8 +22,22 @@ export default function ProfileTab() {
       <Text style={styles.headerTitle}>{title}</Text>
     </View>
   );
-  const CustomButton = ({ title, onPress, style }: { title: string; onPress: () => void; style?: any }) => (
-    <TouchableOpacity onPress={onPress} style={[styles.button, style]}>
+  const CustomButton = ({
+    title,
+    onPress,
+    style,
+    disabled,
+  }: {
+    title: string;
+    onPress: () => void;
+    style?: any;
+    disabled?: boolean;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.button, disabled && styles.buttonDisabled, style]}
+      disabled={disabled}
+    >
       <Text style={styles.buttonText}>{title}</Text>
     </TouchableOpacity>
   );
@@ -40,6 +54,9 @@ export default function ProfileTab() {
   const [notifications, setNotifications] = useState({ push: true, sms: false, email: false });
   const [refreshing, setRefreshing] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const isVerified = useMemo(() => {
     const providers = currentUser?.providerData || [];
     const isGoogle = providers.some((p: any) => p.providerId === 'google.com');
@@ -185,6 +202,27 @@ export default function ProfileTab() {
       router.replace('/auth/login' as any);
     } catch (e) {
       console.warn(e);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    try {
+      const current = auth.currentUser;
+      if (!current) return;
+      setDeletingAccount(true);
+      await deleteDoc(doc(db, 'users', current.uid));
+      await current.delete();
+      router.replace('/auth/login' as any);
+    } catch (e: any) {
+      const message =
+        e?.code === 'auth/requires-recent-login'
+          ? 'Please log in again and try deleting your account.'
+          : e?.message || 'Could not delete account. Please try again.';
+      Alert.alert('Delete failed', message);
+    } finally {
+      setDeletingAccount(false);
+      setDeleteModalVisible(false);
+      setDeleteConfirmText('');
     }
   }
 
@@ -401,6 +439,18 @@ export default function ProfileTab() {
           <CustomButton title="Logout" onPress={handleLogout} style={styles.logoutButton} />
         </View>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <TouchableOpacity
+            style={styles.dangerRow}
+            onPress={() => setDeleteModalVisible(true)}
+          >
+            <FontAwesome5 name="trash" size={18} color={colors.danger} />
+            <Text style={styles.dangerText}>Delete account</Text>
+            <FontAwesome5 name="chevron-right" size={16} color={colors.muted} />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.footerSection}>
           <Text style={styles.appVersion}>Sachio v1.0.0</Text>
           <Text style={styles.copyright}>© 2025 Sachio Mobile Toilets</Text>
@@ -497,6 +547,53 @@ export default function ProfileTab() {
               .
             </Text>
             <CustomButton title="OK" onPress={() => setTermsModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={deleteModalVisible} animationType="fade" transparent={true}>
+        <View style={styles.modalContainer}>
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => {
+              setDeleteModalVisible(false);
+              setDeleteConfirmText('');
+            }}
+          />
+          <View style={styles.modalContent}>
+            <Text style={{ fontWeight: '700', marginBottom: 12 }}>Delete account?</Text>
+            <Text style={styles.supportText}>
+              This will permanently remove your account and profile data. This action cannot be undone.
+            </Text>
+            <Text style={styles.deleteHint}>Type DELETE to confirm.</Text>
+            <TextInput
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              style={styles.input}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+            <CustomButton
+              title={deletingAccount ? 'Deleting...' : 'Yes, delete'}
+              onPress={handleDeleteAccount}
+              style={[
+                styles.dangerButton,
+                deleteConfirmText.trim().toUpperCase() !== 'DELETE' && {
+                  opacity: 0.6,
+                },
+              ]}
+              disabled={
+                deletingAccount ||
+                deleteConfirmText.trim().toUpperCase() !== 'DELETE'
+              }
+            />
+            <CustomButton
+              title="Cancel"
+              onPress={() => {
+                setDeleteModalVisible(false);
+                setDeleteConfirmText('');
+              }}
+            />
           </View>
         </View>
       </Modal>
@@ -767,6 +864,26 @@ const createStyles = (colors: any) =>
   logoutButton: {
     backgroundColor: colors.danger,
   },
+  dangerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 12,
+  },
+  dangerText: {
+    fontSize: 14,
+    color: colors.danger,
+    fontWeight: '600',
+    flex: 1,
+  },
+  dangerButton: {
+    backgroundColor: colors.danger,
+  },
   footerSection: {
     alignItems: 'center',
     paddingVertical: 24,
@@ -803,6 +920,12 @@ const createStyles = (colors: any) =>
     textAlign: 'center',
     marginBottom: 16,
   },
+  deleteHint: {
+    fontSize: 12,
+    color: colors.muted,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
   linkText: {
     color: colors.primary,
     fontWeight: '700',
@@ -826,6 +949,9 @@ const createStyles = (colors: any) =>
     marginTop: 8,
     width: '100%',
     alignItems: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#fff',

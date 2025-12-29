@@ -648,9 +648,6 @@ export default function HomeScreen() {
           activeOpacity={0.92}
           onPress={() => router.push(`/product?id=${item.id}`)}
         >
-          <View pointerEvents="none" style={styles.gridGlass} />
-          <View pointerEvents="none" style={styles.gridGlassSheen} />
-          <View pointerEvents="none" style={styles.gridGlassTint} />
           <View style={styles.gridImageWrap}>
             {image ? (
               <Image
@@ -1334,47 +1331,16 @@ const createStyles = (colors: { [key: string]: string }, isDark: boolean) =>
   catChipText: { color: colors.primary, fontWeight: "700", fontSize: 13 },
   gridCard: {
     flex: 1,
-    backgroundColor: isDark
-      ? "rgba(18, 26, 31, 0.65)"
-      : "rgba(255, 255, 255, 0.7)",
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 10,
     borderWidth: 1,
-    borderColor: isDark ? "rgba(120, 170, 190, 0.18)" : "#E3EEF2",
+    borderColor: isDark ? "#1f2a33" : "#E3E8EC",
     shadowColor: isDark ? "#000" : "#0B6E6B",
     shadowOpacity: isDark ? 0.28 : 0.09,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 7 },
     elevation: 2,
-    overflow: "hidden",
-  },
-  gridGlass: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
-  },
-  gridGlassSheen: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-  },
-  gridGlassTint: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: isDark
-      ? "rgba(47, 183, 168, 0.12)"
-      : "rgba(11, 110, 107, 0.08)",
   },
   gridImageWrap: { position: "relative" },
   gridImage: {
