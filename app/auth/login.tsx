@@ -15,6 +15,9 @@ import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
 
 const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
 const BIOMETRIC_UID_KEY = 'biometric_uid';
+const BIOMETRIC_PROVIDER_KEY = 'biometric_provider';
+const BIOMETRIC_EMAIL_KEY = 'biometric_email';
+const BIOMETRIC_PASSWORD_KEY = 'biometric_password';
 
 const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
@@ -112,7 +115,10 @@ export default function LoginScreen() {
     }).start();
   };
 
-  const promptEnableBiometrics = async (uid: string) => {
+  const promptEnableBiometrics = async (
+    uid: string,
+    creds?: { provider: 'password' | 'google'; email?: string; password?: string }
+  ) => {
     if (!biometricsAvailable) return;
     const enabled =
       (await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY)) === 'true';
@@ -133,6 +139,14 @@ export default function LoginScreen() {
             if (result.success) {
               await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
               await SecureStore.setItemAsync(BIOMETRIC_UID_KEY, uid);
+              await SecureStore.setItemAsync(
+                BIOMETRIC_PROVIDER_KEY,
+                creds?.provider || 'password'
+              );
+              if (creds?.provider === 'password' && creds.email && creds.password) {
+                await SecureStore.setItemAsync(BIOMETRIC_EMAIL_KEY, creds.email);
+                await SecureStore.setItemAsync(BIOMETRIC_PASSWORD_KEY, creds.password);
+              }
               setBiometricsEnabled(true);
               Alert.alert('Enabled', 'Biometric login is ready.');
             }
@@ -147,21 +161,53 @@ export default function LoginScreen() {
       Alert.alert('Biometrics unavailable', 'Set up fingerprint or Face ID first.');
       return;
     }
-    const storedUid = await SecureStore.getItemAsync(BIOMETRIC_UID_KEY);
-    const current = auth().currentUser;
-    if (!current || (storedUid && storedUid !== current.uid)) {
-      Alert.alert('Sign in required', 'Please sign in with email or Google once.');
-      return;
-    }
     const result = await LocalAuthentication.authenticateAsync({
       promptMessage: 'Sign in with biometrics',
       cancelLabel: 'Cancel',
       fallbackLabel: 'Use passcode',
     });
     if (!result.success) return;
-    const blocked = await enforceBlockIfNeeded(current.uid);
-    if (blocked) return;
-    router.replace('/(tabs)/home');
+    const provider = await SecureStore.getItemAsync(BIOMETRIC_PROVIDER_KEY);
+    const storedEmail = await SecureStore.getItemAsync(BIOMETRIC_EMAIL_KEY);
+    const storedPassword = await SecureStore.getItemAsync(BIOMETRIC_PASSWORD_KEY);
+    try {
+      if (storedEmail && storedPassword) {
+        const user = await signInEmail(storedEmail, storedPassword);
+        if (!user.emailVerified) {
+          await signOut();
+          Alert.alert(
+            'Verify your email',
+            'Please verify your email address using the link we sent you before logging in.'
+          );
+          return;
+        }
+        await AsyncStorage.setItem('userToken', user.uid);
+        const blocked = await enforceBlockIfNeeded(user.uid);
+        if (blocked) return;
+        router.replace('/(tabs)/home');
+        return;
+      }
+
+      if (provider === 'google' || !provider) {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        await GoogleSignin.signInSilently();
+        const tokens = await GoogleSignin.getTokens();
+        const idToken = tokens?.idToken;
+        if (!idToken) throw new Error('No Google idToken returned');
+        const credential = GoogleAuthProvider.credential(idToken);
+        const userCred = await auth().signInWithCredential(credential);
+        await ensureUserProfile(userCred.user);
+        await AsyncStorage.setItem('userToken', userCred.user.uid);
+        const blocked = await enforceBlockIfNeeded(userCred.user.uid);
+        if (blocked) return;
+        router.replace('/(tabs)/home');
+        return;
+      }
+
+      Alert.alert('Sign in required', 'Please sign in with email or Google once.');
+    } catch (e: any) {
+      Alert.alert('Biometric sign-in failed', e?.message || 'Please sign in again.');
+    }
   };
 
   const enforceBlockIfNeeded = async (uid: string) => {
@@ -199,7 +245,11 @@ export default function LoginScreen() {
       await AsyncStorage.setItem('userToken', user.uid);
       const blocked = await enforceBlockIfNeeded(user.uid);
       if (blocked) return;
-      await promptEnableBiometrics(user.uid);
+      await promptEnableBiometrics(user.uid, {
+        provider: 'password',
+        email: email.trim(),
+        password,
+      });
       router.replace('/(tabs)/home');
     } catch (error: any) {
       console.error(error);
@@ -225,7 +275,7 @@ export default function LoginScreen() {
       await AsyncStorage.setItem('userToken', userCred.user.uid);
       const blocked = await enforceBlockIfNeeded(userCred.user.uid);
       if (blocked) return;
-      await promptEnableBiometrics(userCred.user.uid);
+      await promptEnableBiometrics(userCred.user.uid, { provider: 'google' });
       router.replace('/(tabs)/home');
     } catch (e: any) {
       if (e?.code === statusCodes.SIGN_IN_CANCELLED) {

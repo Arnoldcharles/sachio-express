@@ -16,6 +16,9 @@ const Text = (props: React.ComponentProps<typeof RNText>) => (
 
 const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
 const BIOMETRIC_UID_KEY = 'biometric_uid';
+const BIOMETRIC_PROVIDER_KEY = 'biometric_provider';
+const BIOMETRIC_EMAIL_KEY = 'biometric_email';
+const BIOMETRIC_PASSWORD_KEY = 'biometric_password';
 
 export default function ProfileTab() {
   const router = useRouter();
@@ -288,18 +291,35 @@ export default function ProfileTab() {
         return;
       }
       if (value) {
+        const providerIds = (current.providerData || []).map((p: any) => p.providerId);
+        const hasPasswordProvider = providerIds.includes('password');
+        const hasGoogleProvider = providerIds.includes('google.com');
+        const storedPassword = await SecureStore.getItemAsync(BIOMETRIC_PASSWORD_KEY);
+        if (hasPasswordProvider && !storedPassword && !hasGoogleProvider) {
+          Alert.alert(
+            'Sign in required',
+            'Please sign in with email and password again to enable biometric login.'
+          );
+          return;
+        }
         const result = await LocalAuthentication.authenticateAsync({
           promptMessage: 'Enable biometric login',
           cancelLabel: 'Cancel',
           fallbackLabel: 'Use passcode',
         });
         if (!result.success) return;
+        const provider =
+          hasPasswordProvider && storedPassword ? 'password' : hasGoogleProvider ? 'google' : 'password';
         await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
         await SecureStore.setItemAsync(BIOMETRIC_UID_KEY, current.uid);
+        await SecureStore.setItemAsync(BIOMETRIC_PROVIDER_KEY, provider);
         setBiometricsEnabled(true);
       } else {
         await SecureStore.deleteItemAsync(BIOMETRIC_ENABLED_KEY);
         await SecureStore.deleteItemAsync(BIOMETRIC_UID_KEY);
+        await SecureStore.deleteItemAsync(BIOMETRIC_PROVIDER_KEY);
+        await SecureStore.deleteItemAsync(BIOMETRIC_EMAIL_KEY);
+        await SecureStore.deleteItemAsync(BIOMETRIC_PASSWORD_KEY);
         setBiometricsEnabled(false);
       }
     } catch (e) {
