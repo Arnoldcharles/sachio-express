@@ -4,7 +4,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../components/Button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ensureUserProfile, signUpEmail } from '../../lib/firebase';
+import { ensureUserProfile, signUpEmail, signOut } from '../../lib/firebase';
 import { useRouter } from 'expo-router';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
@@ -140,8 +140,23 @@ export default function SignupScreen() {
       const user = await signUpEmail(email.trim(), password, { name: fullName, phone });
       // store uid locally
       await AsyncStorage.setItem('userToken', user.uid);
-      // Navigate to OTP or main app - we'll go to tabs
-      router.replace('/(tabs)/home');
+      Alert.alert(
+        'Verify your email',
+        'We sent a verification link to your email. Please verify before logging in.',
+        [
+          {
+            text: 'OK',
+            onPress: async () => {
+              try {
+                await signOut();
+              } catch {
+                // ignore sign out errors
+              }
+              router.replace('/auth/login');
+            },
+          },
+        ]
+      );
     } catch (error: any) {
       console.error(error);
       Alert.alert('Error', error?.message || 'Signup failed. Please try again.');

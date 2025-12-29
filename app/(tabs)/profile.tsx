@@ -28,6 +28,7 @@ export default function ProfileTab() {
     </TouchableOpacity>
   );
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [user, setUser] = useState<any>({ name: '', email: '', phone: '', addresses: [] });
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editData, setEditData] = useState<any>({ name: '', phone: '', address: '' });
@@ -39,6 +40,11 @@ export default function ProfileTab() {
   const [notifications, setNotifications] = useState({ push: true, sms: false, email: false });
   const [refreshing, setRefreshing] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
+  const isVerified = useMemo(() => {
+    const providers = currentUser?.providerData || [];
+    const isGoogle = providers.some((p: any) => p.providerId === 'google.com');
+    return !!currentUser?.emailVerified || isGoogle;
+  }, [currentUser]);
 
   const menuItems = [
     { label: 'Edit Profile', icon: 'user' },
@@ -55,6 +61,7 @@ export default function ProfileTab() {
     async function load() {
       try {
         const current = auth.currentUser;
+        setCurrentUser(current);
         if (!current) {
           router.replace('/auth/login' as any);
           return;
@@ -89,6 +96,12 @@ export default function ProfileTab() {
     }
     load();
     return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!auth || typeof auth.onAuthStateChanged !== 'function') return;
+    const unsub = auth.onAuthStateChanged((u) => setCurrentUser(u));
+    return () => unsub();
   }, []);
 
   const handleRefresh = async () => {
@@ -211,6 +224,31 @@ export default function ProfileTab() {
           </View>
           <Text style={styles.userName}>{user.name || user.email}</Text>
           <Text style={styles.userEmail}>{user.email}</Text>
+          {isVerified ? (
+            <View style={styles.verifiedRow}>
+              <FontAwesome5 name="check-circle" size={12} color={colors.primary} />
+              <Text style={styles.verifiedText}>Verified</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.unverifiedRow}
+              onPress={async () => {
+                try {
+                  if (!currentUser?.email) {
+                    Alert.alert('Email missing', 'No email on this account.');
+                    return;
+                  }
+                  await currentUser.sendEmailVerification();
+                  Alert.alert('Verification sent', 'Check your email for the verification link.');
+                } catch (e: any) {
+                  Alert.alert('Could not send', e?.message || 'Please try again later.');
+                }
+              }}
+            >
+              <FontAwesome5 name="exclamation-circle" size={12} color={colors.danger} />
+              <Text style={styles.unverifiedText}>Not verified • Tap to resend</Text>
+            </TouchableOpacity>
+          )}
           {user.phone ? <Text style={styles.userPhone}>{user.phone}</Text> : null}
           {addresses.length ? (
             <View style={styles.addressBlock}>
@@ -520,6 +558,40 @@ const createStyles = (colors: any) =>
     color: colors.muted,
     marginBottom: 2,
   },
+  verifiedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.background,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 2,
+  },
+  verifiedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  unverifiedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    marginBottom: 2,
+  },
+  unverifiedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.danger,
+  },
   userPhone: {
     fontSize: 13,
     color: colors.muted,
@@ -596,7 +668,7 @@ const createStyles = (colors: any) =>
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
   },
   section: {
     paddingHorizontal: 16,

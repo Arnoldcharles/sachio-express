@@ -14,6 +14,7 @@ import {
   Alert,
   Modal,
   Animated,
+  Easing,
   StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -200,6 +201,36 @@ export default function HomeScreen() {
   const searchAnim = useRef(new Animated.Value(0)).current;
   const categoriesAnim = useRef(new Animated.Value(0)).current;
   const contentAnim = useRef(new Animated.Value(0)).current;
+  const itemAnims = useRef(new Map<string, Animated.Value>()).current;
+  const revealedIds = useRef(new Set<string>()).current;
+
+  const getItemAnim = useCallback(
+    (id: string) => {
+      const existing = itemAnims.get(id);
+      if (existing) return existing;
+      const next = new Animated.Value(0);
+      itemAnims.set(id, next);
+      return next;
+    },
+    [itemAnims]
+  );
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: Array<{ key: string }> }) => {
+      viewableItems.forEach((viewable) => {
+        const id = viewable.key;
+        if (!id || revealedIds.has(id)) return;
+        revealedIds.add(id);
+        const anim = getItemAnim(id);
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 360,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      });
+    }
+  ).current;
 
   useEffect(() => {
     loadData();
@@ -582,6 +613,7 @@ export default function HomeScreen() {
   );
 
   const renderCard = ({ item }: { item: Product }) => {
+    const anim = getItemAnim(String(item.id));
     const image = (item.images && item.images[0]) || item.imageUrl;
     const outOfStock = item.inStock === false;
     const hidePrice =
@@ -598,92 +630,109 @@ export default function HomeScreen() {
       !isNaN(created.getTime()) &&
       Date.now() - created.getTime() <= 5 * 24 * 60 * 60 * 1000;
     return (
-      <TouchableOpacity
-        style={styles.gridCard}
-        activeOpacity={0.92}
-        onPress={() => router.push(`/product?id=${item.id}`)}
+      <Animated.View
+        style={{
+          opacity: anim,
+          transform: [
+            {
+              translateY: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [12, 0],
+              }),
+            },
+          ],
+        }}
       >
-        <View style={styles.gridImageWrap}>
-          {image ? (
-            <Image
-              source={{ uri: image }}
-              style={styles.gridImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.gridImage, styles.gridImageFallback]}>
-              <FontAwesome5 name="toilet" size={26} color={colors.primary} />
-            </View>
-          )}
-          <View style={styles.badgeRow}>
-            {isNew ? (
-              <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>NEW</Text>
-              </View>
+        <TouchableOpacity
+          style={styles.gridCard}
+          activeOpacity={0.92}
+          onPress={() => router.push(`/product?id=${item.id}`)}
+        >
+          <View pointerEvents="none" style={styles.gridGlass} />
+          <View pointerEvents="none" style={styles.gridGlassSheen} />
+          <View pointerEvents="none" style={styles.gridGlassTint} />
+          <View style={styles.gridImageWrap}>
+            {image ? (
+              <Image
+                source={{ uri: image }}
+                style={styles.gridImage}
+                resizeMode="cover"
+              />
             ) : (
-              <View style={{ width: 42 }} />
+              <View style={[styles.gridImage, styles.gridImageFallback]}>
+                <FontAwesome5 name="toilet" size={26} color={colors.primary} />
+              </View>
             )}
-            <View style={styles.ratingPill}>
-              <FontAwesome5 name="star" size={10} color="#F6B22F" />
-              <Text style={styles.ratingText}>4.8</Text>
-            </View>
-          </View>
-          <View style={styles.iconPills}>
-            {outOfStock ? (
-              <View style={[styles.gridCart, styles.gridCartDisabled]}>
-                <FontAwesome5 name="ban" size={12} color={colors.danger} />
+            <View style={styles.badgeRow}>
+              {isNew ? (
+                <View style={styles.newBadge}>
+                  <Text style={styles.newBadgeText}>NEW</Text>
+                </View>
+              ) : (
+                <View style={{ width: 42 }} />
+              )}
+              <View style={styles.ratingPill}>
+                <FontAwesome5 name="star" size={10} color="#F6B22F" />
+                <Text style={styles.ratingText}>4.8</Text>
               </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.gridCart}
-                onPress={async () => {
-                  try {
-                    const raw = await AsyncStorage.getItem(CART_KEY);
-                    const parsed = raw ? (JSON.parse(raw) as any[]) : [];
-                    const idx = parsed.findIndex((p) => p.id === item.id);
-                    if (idx >= 0) {
-                      parsed[idx].qty = (parsed[idx].qty || 1) + 1;
-                    } else {
-                      parsed.push({
-                        id: item.id,
-                        title: item.title,
-                        price: item.price,
-                        imageUrl: image || "",
-                        qty: 1,
-                      });
+            </View>
+            <View style={styles.iconPills}>
+              {outOfStock ? (
+                <View style={[styles.gridCart, styles.gridCartDisabled]}>
+                  <FontAwesome5 name="ban" size={12} color={colors.danger} />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.gridCart}
+                  onPress={async () => {
+                    try {
+                      const raw = await AsyncStorage.getItem(CART_KEY);
+                      const parsed = raw ? (JSON.parse(raw) as any[]) : [];
+                      const idx = parsed.findIndex((p) => p.id === item.id);
+                      if (idx >= 0) {
+                        parsed[idx].qty = (parsed[idx].qty || 1) + 1;
+                      } else {
+                        parsed.push({
+                          id: item.id,
+                          title: item.title,
+                          price: item.price,
+                          imageUrl: image || "",
+                          qty: 1,
+                        });
+                      }
+                      await saveCartItems(parsed);
+                      Alert.alert(
+                        "Added to cart",
+                        `${item.title} was added to your cart.`
+                      );
+                    } catch (e) {
+                      Alert.alert(
+                        "Cart error",
+                        "Could not add to cart. Please try again."
+                      );
                     }
-                    await saveCartItems(parsed);
-                    Alert.alert(
-                      "Added to cart",
-                      `${item.title} was added to your cart.`
-                    );
-                  } catch (e) {
-                    Alert.alert(
-                      "Cart error",
-                      "Could not add to cart. Please try again."
-                    );
-                  }
-                }}
-              >
-                <FontAwesome5 name="plus" size={12} color={colors.primary} />
-              </TouchableOpacity>
-            )}
+                  }}
+                >
+                  <FontAwesome5 name="plus" size={12} color={colors.primary} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-        </View>
-        <Text style={styles.gridTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        {!hidePrice ? (
-          <Text style={styles.gridPrice}>
-            {item.price != null && item.price !== ""
-              ? `NGN ${Number(item.price).toLocaleString()}`
-              : "NGN -"}
+          <Text style={styles.gridTitle} numberOfLines={2}>
+            {item.title}
           </Text>
-        ) : null}
-        {outOfStock ? (
-          <Text style={styles.stockBadge}>Out of stock</Text>
-        ) : null}
-      </TouchableOpacity>
+          {!hidePrice ? (
+            <Text style={styles.gridPrice}>
+              {item.price != null && item.price !== ""
+                ? `NGN ${Number(item.price).toLocaleString()}`
+                : "NGN -"}
+            </Text>
+          ) : null}
+          {outOfStock ? (
+            <Text style={styles.stockBadge}>Out of stock</Text>
+          ) : null}
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
 
@@ -1038,6 +1087,8 @@ export default function HomeScreen() {
               keyExtractor={(item) => String(item.id)}
               renderItem={renderCard}
               numColumns={2}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={{ itemVisiblePercentThreshold: 30 }}
               columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
               contentContainerStyle={{
                 gap: 12,
@@ -1283,16 +1334,47 @@ const createStyles = (colors: { [key: string]: string }, isDark: boolean) =>
   catChipText: { color: colors.primary, fontWeight: "700", fontSize: 13 },
   gridCard: {
     flex: 1,
-    backgroundColor: colors.card,
+    backgroundColor: isDark
+      ? "rgba(18, 26, 31, 0.65)"
+      : "rgba(255, 255, 255, 0.7)",
     borderRadius: 16,
     padding: 10,
     borderWidth: 1,
-    borderColor: isDark ? "#1f2a33" : "#E3E8EC",
+    borderColor: isDark ? "rgba(120, 170, 190, 0.18)" : "#E3EEF2",
     shadowColor: isDark ? "#000" : "#0B6E6B",
     shadowOpacity: isDark ? 0.28 : 0.09,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 7 },
     elevation: 2,
+    overflow: "hidden",
+  },
+  gridGlass: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  gridGlassSheen: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 50,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+  },
+  gridGlassTint: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: isDark
+      ? "rgba(47, 183, 168, 0.12)"
+      : "rgba(11, 110, 107, 0.08)",
   },
   gridImageWrap: { position: "relative" },
   gridImage: {

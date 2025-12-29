@@ -106,6 +106,14 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const user = await signInEmail(email.trim(), password);
+      if (!user.emailVerified) {
+        await signOut();
+        Alert.alert(
+          'Verify your email',
+          'Please verify your email address using the link we sent you before logging in.'
+        );
+        return;
+      }
       await AsyncStorage.setItem('userToken', user.uid);
       const blocked = await enforceBlockIfNeeded(user.uid);
       if (blocked) return;
