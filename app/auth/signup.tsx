@@ -9,6 +9,11 @@ import { useRouter } from 'expo-router';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
 import { useTheme } from '../../lib/theme';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
+
+const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
+const BIOMETRIC_UID_KEY = 'biometric_uid';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -21,6 +26,7 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const headerAnim = useRef(new Animated.Value(0)).current;
   const cardAnim = useRef(new Animated.Value(0)).current;
   const footerAnim = useRef(new Animated.Value(0)).current;
@@ -44,6 +50,53 @@ export default function SignupScreen() {
     });
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    const checkBiometrics = async () => {
+      try {
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        if (!mounted) return;
+        setBiometricsAvailable(hasHardware && isEnrolled);
+      } catch (e) {
+        if (!mounted) return;
+        setBiometricsAvailable(false);
+      }
+    };
+    checkBiometrics();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const promptEnableBiometrics = async (uid: string) => {
+    if (!biometricsAvailable) return;
+    const enabled =
+      (await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY)) === 'true';
+    if (enabled) return;
+    Alert.alert(
+      'Enable biometric login?',
+      'Use fingerprint or Face ID to sign in faster next time.',
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Enable',
+          onPress: async () => {
+            const result = await LocalAuthentication.authenticateAsync({
+              promptMessage: 'Enable biometric login',
+              cancelLabel: 'Cancel',
+              fallbackLabel: 'Use passcode',
+            });
+            if (result.success) {
+              await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+              await SecureStore.setItemAsync(BIOMETRIC_UID_KEY, uid);
+              Alert.alert('Enabled', 'Biometric login is ready.');
+            }
+          },
+        },
+      ]
+    );
+  };
   useEffect(() => {
     const curve = Easing.bezier(0.2, 0.8, 0.2, 1);
     Animated.stagger(140, [
@@ -179,6 +232,7 @@ export default function SignupScreen() {
       const userCred = await auth().signInWithCredential(credential);
       await ensureUserProfile(userCred.user);
       await AsyncStorage.setItem('userToken', userCred.user.uid);
+      await promptEnableBiometrics(userCred.user.uid);
       router.replace('/(tabs)/home');
     } catch (e: any) {
       if (e?.code === statusCodes.SIGN_IN_CANCELLED) {

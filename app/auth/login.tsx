@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text as RNText, StyleSheet, TextInput, TouchableOpacity, Alert, StatusBar, ScrollView, KeyboardAvoidingView, Platform, Animated, Easing } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 
 import Button from '../../components/Button';
 import { useTheme } from '../../lib/theme';
@@ -10,6 +12,9 @@ import { ensureUserProfile, signInEmail, getUserProfile, sendPasswordReset, sign
 import { FontAwesome5 } from '@expo/vector-icons';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
+
+const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
+const BIOMETRIC_UID_KEY = 'biometric_uid';
 
 const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
@@ -23,6 +28,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const heroAnim = useRef(new Animated.Value(0)).current;
   const cardAnim = useRef(new Animated.Value(0)).current;
   const footerAnim = useRef(new Animated.Value(0)).current;
@@ -36,6 +43,29 @@ export default function LoginScreen() {
     GoogleSignin.configure({
       webClientId: '1052577492056-5s73ofdq8sme7uefml3t5nc1foei4qu3.apps.googleusercontent.com',
     });
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const checkBiometrics = async () => {
+      try {
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        const enabled =
+          (await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY)) === 'true';
+        if (!mounted) return;
+        setBiometricsAvailable(hasHardware && isEnrolled);
+        setBiometricsEnabled(enabled);
+      } catch (e) {
+        if (!mounted) return;
+        setBiometricsAvailable(false);
+        setBiometricsEnabled(false);
+      }
+    };
+    checkBiometrics();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -82,6 +112,58 @@ export default function LoginScreen() {
     }).start();
   };
 
+  const promptEnableBiometrics = async (uid: string) => {
+    if (!biometricsAvailable) return;
+    const enabled =
+      (await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY)) === 'true';
+    if (enabled) return;
+    Alert.alert(
+      'Enable biometric login?',
+      'Use fingerprint or Face ID to sign in faster next time.',
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Enable',
+          onPress: async () => {
+            const result = await LocalAuthentication.authenticateAsync({
+              promptMessage: 'Enable biometric login',
+              cancelLabel: 'Cancel',
+              fallbackLabel: 'Use passcode',
+            });
+            if (result.success) {
+              await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+              await SecureStore.setItemAsync(BIOMETRIC_UID_KEY, uid);
+              setBiometricsEnabled(true);
+              Alert.alert('Enabled', 'Biometric login is ready.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleBiometricLogin = async () => {
+    if (!biometricsAvailable) {
+      Alert.alert('Biometrics unavailable', 'Set up fingerprint or Face ID first.');
+      return;
+    }
+    const storedUid = await SecureStore.getItemAsync(BIOMETRIC_UID_KEY);
+    const current = auth().currentUser;
+    if (!current || (storedUid && storedUid !== current.uid)) {
+      Alert.alert('Sign in required', 'Please sign in with email or Google once.');
+      return;
+    }
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Sign in with biometrics',
+      cancelLabel: 'Cancel',
+      fallbackLabel: 'Use passcode',
+    });
+    if (!result.success) return;
+    const blocked = await enforceBlockIfNeeded(current.uid);
+    if (blocked) return;
+    router.replace('/(tabs)/home');
+  };
+
   const enforceBlockIfNeeded = async (uid: string) => {
     try {
       const profile = await getUserProfile(uid);
@@ -117,6 +199,7 @@ export default function LoginScreen() {
       await AsyncStorage.setItem('userToken', user.uid);
       const blocked = await enforceBlockIfNeeded(user.uid);
       if (blocked) return;
+      await promptEnableBiometrics(user.uid);
       router.replace('/(tabs)/home');
     } catch (error: any) {
       console.error(error);
@@ -142,6 +225,7 @@ export default function LoginScreen() {
       await AsyncStorage.setItem('userToken', userCred.user.uid);
       const blocked = await enforceBlockIfNeeded(userCred.user.uid);
       if (blocked) return;
+      await promptEnableBiometrics(userCred.user.uid);
       router.replace('/(tabs)/home');
     } catch (e: any) {
       if (e?.code === statusCodes.SIGN_IN_CANCELLED) {
@@ -379,6 +463,15 @@ export default function LoginScreen() {
                   {loadingGoogle ? 'Please wait...' : 'Continue with Google'}
                 </Text>
               </TouchableOpacity>
+              {biometricsAvailable && biometricsEnabled ? (
+                <TouchableOpacity
+                  style={styles.biometricBtn}
+                  onPress={handleBiometricLogin}
+                >
+                  <FontAwesome5 name="fingerprint" size={16} color={colors.primary} />
+                  <Text style={styles.biometricText}>Use Fingerprint / Face ID</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </Animated.View>
 
@@ -563,4 +656,20 @@ const createStyles = (colors: { [key: string]: string }, isDark: boolean) =>
     gap: 8,
   },
   socialBtnText: { color: '#fff', fontWeight: '700' },
+  biometricBtn: {
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: isDark ? '#0f1f1e' : '#F6FBFA',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  biometricText: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
 });

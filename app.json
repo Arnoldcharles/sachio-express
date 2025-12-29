@@ -11,6 +11,9 @@
     "ios": {
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to sign in faster."
+      },
       "associatedDomains": [
         "applinks:sachio-mobile-web.vercel.app"
       ]
@@ -67,7 +70,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
