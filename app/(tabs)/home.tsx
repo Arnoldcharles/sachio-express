@@ -16,6 +16,7 @@ import {
   Animated,
   Easing,
   StatusBar,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -155,6 +156,12 @@ export default function HomeScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+  const cardWidth = useMemo(() => {
+    const screenWidth = Dimensions.get("window").width;
+    const horizontalPadding = 16 * 2;
+    const gap = 12;
+    return Math.floor((screenWidth - horizontalPadding - gap) / 2);
+  }, []);
   const [products, setProducts] = useState<Product[]>([]);
   const [filtered, setFiltered] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -644,7 +651,7 @@ export default function HomeScreen() {
         }}
       >
         <TouchableOpacity
-          style={styles.gridCard}
+          style={[styles.gridCard, { width: cardWidth }]}
           activeOpacity={0.92}
           onPress={() => router.push(`/product?id=${item.id}`)}
         >
@@ -1086,7 +1093,10 @@ export default function HomeScreen() {
               numColumns={2}
               onViewableItemsChanged={onViewableItemsChanged}
               viewabilityConfig={{ itemVisiblePercentThreshold: 30 }}
-              columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
+              columnWrapperStyle={{
+                paddingHorizontal: 16,
+                justifyContent: "space-between",
+              }}
               contentContainerStyle={{
                 gap: 12,
                 paddingVertical: 12,
@@ -1330,7 +1340,7 @@ const createStyles = (colors: { [key: string]: string }, isDark: boolean) =>
   },
   catChipText: { color: colors.primary, fontWeight: "700", fontSize: 13 },
   gridCard: {
-    flex: 1,
+    flexGrow: 0,
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 10,
