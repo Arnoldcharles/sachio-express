@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text as RNText, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, StatusBar, Modal, TextInput, ActivityIndicator, RefreshControl, Linking, Pressable } from 'react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -11,6 +13,9 @@ import { useTheme } from '../../lib/theme';
 const Text = (props: React.ComponentProps<typeof RNText>) => (
   <RNText {...props} style={[{ fontFamily: 'Nunito' }, props.style]} />
 );
+
+const BIOMETRIC_ENABLED_KEY = 'biometric_enabled';
+const BIOMETRIC_UID_KEY = 'biometric_uid';
 
 export default function ProfileTab() {
   const router = useRouter();
@@ -57,6 +62,9 @@ export default function ProfileTab() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [biometricsLabel, setBiometricsLabel] = useState('Biometric Login');
   const isVerified = useMemo(() => {
     const providers = currentUser?.providerData || [];
     const isGoogle = providers.some((p: any) => p.providerId === 'google.com');
@@ -112,6 +120,38 @@ export default function ProfileTab() {
       }
     }
     load();
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadBiometrics = async () => {
+      try {
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        const enabled =
+          (await SecureStore.getItemAsync(BIOMETRIC_ENABLED_KEY)) === 'true';
+        const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+        let label = 'Biometric Login';
+        if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION) &&
+            types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+          label = 'Face ID / Fingerprint';
+        } else if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+          label = 'Face ID';
+        } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+          label = 'Fingerprint';
+        }
+        if (!mounted) return;
+        setBiometricsAvailable(hasHardware && isEnrolled);
+        setBiometricsEnabled(enabled);
+        setBiometricsLabel(label);
+      } catch (e) {
+        if (!mounted) return;
+        setBiometricsAvailable(false);
+        setBiometricsEnabled(false);
+      }
+    };
+    loadBiometrics();
     return () => { mounted = false; };
   }, []);
 
@@ -238,6 +278,34 @@ export default function ProfileTab() {
       console.warn('Failed to update notification preference', e);
     }
   }
+
+  const handleToggleBiometrics = async (value: boolean) => {
+    try {
+      const current = auth.currentUser;
+      if (!current) return;
+      if (!biometricsAvailable) {
+        Alert.alert('Biometrics unavailable', 'Set up Face ID or fingerprint on this device first.');
+        return;
+      }
+      if (value) {
+        const result = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Enable biometric login',
+          cancelLabel: 'Cancel',
+          fallbackLabel: 'Use passcode',
+        });
+        if (!result.success) return;
+        await SecureStore.setItemAsync(BIOMETRIC_ENABLED_KEY, 'true');
+        await SecureStore.setItemAsync(BIOMETRIC_UID_KEY, current.uid);
+        setBiometricsEnabled(true);
+      } else {
+        await SecureStore.deleteItemAsync(BIOMETRIC_ENABLED_KEY);
+        await SecureStore.deleteItemAsync(BIOMETRIC_UID_KEY);
+        setBiometricsEnabled(false);
+      }
+    } catch (e) {
+      Alert.alert('Biometric error', 'Could not update biometric settings.');
+    }
+  };
 
   if (loading) {
     return (
@@ -395,6 +463,24 @@ export default function ProfileTab() {
               ))}
             </View>
           </View>
+          <View style={styles.notificationItem}>
+            <View style={styles.notificationLabel}>
+              <FontAwesome5 name="fingerprint" size={18} color="#0B6E6B" />
+              <Text style={styles.notificationText}>{biometricsLabel}</Text>
+            </View>
+            <Switch
+              value={biometricsEnabled}
+              onValueChange={handleToggleBiometrics}
+              trackColor={{ false: '#ddd', true: '#0B6E6B' }}
+              thumbColor="#fff"
+              disabled={!biometricsAvailable}
+            />
+          </View>
+          {!biometricsAvailable ? (
+            <Text style={styles.helperText}>
+              Set up Face ID or fingerprint in your device settings to enable biometric login.
+            </Text>
+          ) : null}
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
@@ -839,6 +925,12 @@ const createStyles = (colors: any) =>
     color: colors.text,
     marginLeft: 12,
     fontWeight: '500',
+  },
+  helperText: {
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: -4,
+    marginBottom: 10,
   },
   menuItem: {
     flexDirection: 'row',
