@@ -18,6 +18,7 @@ import {
   StatusBar,
   Dimensions,
 } from "react-native";
+import { PinchGestureHandler, State } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { FontAwesome5 } from "@expo/vector-icons";
@@ -55,6 +56,13 @@ type Announcement = {
   createdAt?: Date | null;
   audience?: "all" | "user";
   targetUserId?: string | null;
+};
+type GalleryItem = {
+  id: string;
+  title?: string | null;
+  imageUrl?: string | null;
+  productId?: string | null;
+  createdAt?: Date | null;
 };
 
 const RENT_STATES = [
@@ -162,9 +170,14 @@ export default function HomeScreen() {
     const gap = 12;
     return Math.floor((screenWidth - horizontalPadding - gap) / 2);
   }, []);
+  const modalWidth = useMemo(
+    () => Math.min(Dimensions.get("window").width - 40, 420),
+    []
+  );
   const [products, setProducts] = useState<Product[]>([]);
   const [filtered, setFiltered] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -177,6 +190,11 @@ export default function HomeScreen() {
   const [paymentFailedMessage, setPaymentFailedMessage] = useState(
     "Your payment was not completed. Please try again."
   );
+  const [galleryModalVisible, setGalleryModalVisible] = useState(false);
+  const [galleryModalItem, setGalleryModalItem] = useState<GalleryItem | null>(
+    null
+  );
+  const [galleryModalIndex, setGalleryModalIndex] = useState(0);
   const [rentName, setRentName] = useState("");
   const [rentEmail, setRentEmail] = useState("");
   const [rentPhone, setRentPhone] = useState("");
@@ -204,6 +222,7 @@ export default function HomeScreen() {
   }>({ type: null });
   const rentish = (val?: string | null) =>
     !!val && val.toLowerCase().includes("rent");
+  const showGallery = selectedCategory === "Gallery";
   const headerAnim = useRef(new Animated.Value(0)).current;
   const searchAnim = useRef(new Animated.Value(0)).current;
   const categoriesAnim = useRef(new Animated.Value(0)).current;
@@ -278,6 +297,13 @@ export default function HomeScreen() {
   }, [filtered, selectedCategory, search]);
 
   const showRentForm = rentish(selectedCategory);
+  const galleryFiltered = useMemo(() => {
+    if (!search.trim()) return galleryItems;
+    const q = search.toLowerCase();
+    return galleryItems.filter((item) =>
+      (item.title || "").toLowerCase().includes(q)
+    );
+  }, [galleryItems, search]);
 
   const canSubmitRent = useMemo(() => {
     return (
@@ -312,9 +338,28 @@ export default function HomeScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [items, cats] = await Promise.all([getProducts(), getCategories()]);
+      const [items, cats, gallerySnap] = await Promise.all([
+        getProducts(),
+        getCategories(),
+        getDocs(
+          query(collection(db, "gallery"), orderBy("createdAt", "desc"), limit(50))
+        ),
+      ]);
       setProducts(items);
       setCategories(cats);
+      const galleryList = gallerySnap.docs.map((docSnap: any) => {
+        const data = docSnap.data() as any;
+        return {
+          id: docSnap.id,
+          title: data?.title ?? "Gallery item",
+          imageUrl: data?.imageUrl ?? "",
+          productId: data?.productId ?? null,
+          createdAt: data?.createdAt?.toDate
+            ? data.createdAt.toDate()
+            : null,
+        } as GalleryItem;
+      });
+      setGalleryItems(galleryList);
     } catch (e) {
       // keep silent fail with empty state
     } finally {
@@ -753,6 +798,95 @@ export default function HomeScreen() {
     );
   };
 
+  const renderGalleryCard = ({ item }: { item: GalleryItem }) => {
+    const anim = getItemAnim(`gallery-${item.id}`);
+    return (
+      <Animated.View
+        style={{
+          opacity: anim,
+          transform: [
+            {
+              translateY: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [12, 0],
+              }),
+            },
+          ],
+        }}
+      >
+        <TouchableOpacity
+          style={[styles.gridCard, { width: cardWidth }]}
+          activeOpacity={0.9}
+          onPress={() => {
+            setGalleryModalItem(item);
+            setGalleryModalIndex(
+              Math.max(
+                0,
+                galleryFiltered.findIndex((g) => g.id === item.id)
+              )
+            );
+            setGalleryModalVisible(true);
+          }}
+        >
+          <View style={styles.gridImageWrap}>
+            {item.imageUrl ? (
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={styles.gridImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.gridImage, styles.gridImageFallback]}>
+                <FontAwesome5 name="image" size={26} color={colors.primary} />
+              </View>
+            )}
+          </View>
+          <Text style={styles.gridTitle} numberOfLines={2}>
+            {item.title || "Gallery item"}
+          </Text>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
+  const renderPinchImage = (uri?: string | null) => {
+    if (!uri) {
+      return (
+        <View style={[styles.galleryModalImage, styles.gridImageFallback]}>
+          <FontAwesome5 name="image" size={36} color={colors.primary} />
+        </View>
+      );
+    }
+    const scale = new Animated.Value(1);
+    const onPinchEvent = Animated.event([{ nativeEvent: { scale } }], {
+      useNativeDriver: true,
+    });
+    const onPinchStateChange = (event: any) => {
+      if (
+        event.nativeEvent.state === State.END ||
+        event.nativeEvent.state === State.CANCELLED ||
+        event.nativeEvent.state === State.FAILED
+      ) {
+        Animated.spring(scale, {
+          toValue: 1,
+          useNativeDriver: true,
+        }).start();
+      }
+    };
+    return (
+      <PinchGestureHandler
+        onGestureEvent={onPinchEvent}
+        onHandlerStateChange={onPinchStateChange}
+      >
+        <Animated.Image
+          source={{ uri }}
+          style={[styles.galleryModalImage, { transform: [{ scale }] }]}
+          resizeMode="contain"
+        />
+      </PinchGestureHandler>
+    );
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={colors.background} />
@@ -863,6 +997,12 @@ export default function HomeScreen() {
               label="Buy"
               active={selectedCategory === "All"}
               onPress={() => setSelectedCategory("All")}
+              styles={styles}
+            />
+            <CategoryChip
+              label="Gallery"
+              active={selectedCategory === "Gallery"}
+              onPress={() => setSelectedCategory("Gallery")}
               styles={styles}
             />
             {categories.map((cat) => (
@@ -1083,7 +1223,50 @@ export default function HomeScreen() {
             <ActivityIndicator color={colors.primary} size="large" />
             <Text style={styles.loadingText}>Loading toilets…</Text>
           </View>
-        ) : showRentForm ? null : (
+        ) : showRentForm ? null : showGallery ? (
+          <Animated.View
+            style={[
+              {
+                opacity: contentAnim,
+                transform: [
+                  {
+                    translateY: contentAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [14, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <FlatList
+              data={galleryFiltered}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={renderGalleryCard}
+              numColumns={2}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={{ itemVisiblePercentThreshold: 30 }}
+              columnWrapperStyle={{
+                paddingHorizontal: 16,
+                justifyContent: "space-between",
+              }}
+              contentContainerStyle={{
+                gap: 12,
+                paddingVertical: 12,
+                paddingBottom: 32,
+              }}
+              scrollEnabled={false}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>No gallery items yet</Text>
+                  <Text style={styles.emptyBody}>
+                    Add items from the dashboard gallery section.
+                  </Text>
+                </View>
+              }
+            />
+          </Animated.View>
+        ) : (
           <Animated.View
             style={[
               {
@@ -1167,6 +1350,46 @@ export default function HomeScreen() {
               >
                 <Text style={styles.paymentBtnText}>OK</Text>
               </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
+      {galleryModalVisible && galleryModalItem ? (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          onRequestClose={() => setGalleryModalVisible(false)}
+        >
+          <Pressable
+            style={styles.galleryBackdrop}
+            onPress={() => setGalleryModalVisible(false)}
+          >
+            <Pressable style={styles.galleryCard} onPress={() => {}}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                contentOffset={{
+                  x: galleryModalIndex * modalWidth,
+                  y: 0,
+                }}
+                style={styles.galleryScroller}
+              >
+                {galleryFiltered.map((item) => (
+                  <View
+                    key={item.id}
+                    style={[styles.gallerySlide, { width: modalWidth }]}
+                  >
+                    {renderPinchImage(item.imageUrl)}
+                    {item.title ? (
+                      <Text style={styles.galleryModalTitle}>
+                        {item.title}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))}
+              </ScrollView>
             </Pressable>
           </Pressable>
         </Modal>
@@ -1600,6 +1823,43 @@ const createStyles = (colors: { [key: string]: string }, isDark: boolean) =>
     fontSize: 14,
     color: colors.muted,
     lineHeight: 20,
+  },
+  galleryBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(8, 12, 16, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  galleryCard: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+  },
+  galleryScroller: {
+    width: "100%",
+  },
+  gallerySlide: {
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  galleryModalImage: {
+    width: "100%",
+    height: 320,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+  },
+  galleryModalTitle: {
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.text,
+    textAlign: "center",
   },
   paymentBtn: {
     marginTop: 16,
