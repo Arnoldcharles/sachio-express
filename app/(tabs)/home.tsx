@@ -29,6 +29,7 @@ import {
   collection,
   getDocs,
   limit,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
@@ -338,28 +339,9 @@ export default function HomeScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [items, cats, gallerySnap] = await Promise.all([
-        getProducts(),
-        getCategories(),
-        getDocs(
-          query(collection(db, "gallery"), orderBy("createdAt", "desc"), limit(50))
-        ),
-      ]);
+      const [items, cats] = await Promise.all([getProducts(), getCategories()]);
       setProducts(items);
       setCategories(cats);
-      const galleryList = gallerySnap.docs.map((docSnap: any) => {
-        const data = docSnap.data() as any;
-        return {
-          id: docSnap.id,
-          title: data?.title ?? "Gallery item",
-          imageUrl: data?.imageUrl ?? "",
-          productId: data?.productId ?? null,
-          createdAt: data?.createdAt?.toDate
-            ? data.createdAt.toDate()
-            : null,
-        } as GalleryItem;
-      });
-      setGalleryItems(galleryList);
     } catch (e) {
       // keep silent fail with empty state
     } finally {
@@ -372,6 +354,29 @@ export default function HomeScreen() {
     AsyncStorage.getItem("userToken")
       .then((uid) => setUserId(uid))
       .catch(() => setUserId(null));
+  }, []);
+
+  useEffect(() => {
+    const galleryQuery = query(
+      collection(db, "gallery"),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
+    const unsub = onSnapshot(galleryQuery, (snap) => {
+      const galleryList = snap.docs.map((docSnap: any) => {
+        const data = docSnap.data() as any;
+        return {
+          id: docSnap.id,
+          title: data?.title ?? "Gallery item",
+          imageUrl: data?.imageUrl ?? "",
+          createdAt: data?.createdAt?.toDate
+            ? data.createdAt.toDate()
+            : null,
+        } as GalleryItem;
+      });
+      setGalleryItems(galleryList);
+    });
+    return () => unsub();
   }, []);
 
   useEffect(() => {
