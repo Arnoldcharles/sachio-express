@@ -14,6 +14,8 @@ import {
   Modal,
   TouchableWithoutFeedback,
   StatusBar,
+  TextInput,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -21,11 +23,32 @@ import { getProducts, Product } from "../lib/products";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useTheme } from "../lib/theme";
 import { FontAwesome } from "@expo/vector-icons";
-import { auth } from "../lib/firebase";
+import { auth, db } from "../lib/firebase";
+import {
+  collection,
+  doc,
+  getDoc,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  setDoc,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
 
 const CART_KEY = "cart_items";
 const rentish = (val?: string | null) =>
   !!val && val.toLowerCase().includes("rent");
+
+type Review = {
+  id: string;
+  rating: number;
+  text?: string;
+  userName?: string;
+  userId?: string;
+  createdAt?: Date | null;
+};
 
 export default function ProductPage() {
   const { id } = useLocalSearchParams();
@@ -44,6 +67,11 @@ export default function ProductPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [showFullDesc, setShowFullDesc] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [myReviewLoaded, setMyReviewLoaded] = useState(false);
   const isRentProduct = useMemo(
     () =>
       rentish(product?.category) ||
@@ -149,6 +177,136 @@ export default function ProductPage() {
       }
     });
   }, [product, id]);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    const reviewsRef = collection(db, "products", String(product.id), "reviews");
+    const reviewsQuery = query(reviewsRef, orderBy("createdAt", "desc"), limit(20));
+    const unsub = onSnapshot(reviewsQuery, (snap) => {
+      const items = snap.docs.map((docSnap: any) => {
+        const data = docSnap.data() as any;
+        const createdAt = data?.createdAt?.toDate?.() ?? null;
+        return {
+          id: docSnap.id,
+          rating: Number(data?.rating || 0),
+          text: data?.text || "",
+          userName: data?.userName || "Anonymous",
+          userId: data?.userId,
+          createdAt,
+        } as Review;
+      });
+      setReviews(items);
+      if (!myReviewLoaded && auth.currentUser) {
+        const mine = items.find(
+          (r: Review) => r.userId === auth.currentUser?.uid
+        );
+        if (mine) {
+          setReviewRating(mine.rating);
+          setReviewText(mine.text || "");
+          setMyReviewLoaded(true);
+        }
+      }
+    });
+    return () => unsub();
+  }, [product?.id, myReviewLoaded]);
+
+  const handleSubmitReview = async () => {
+    if (!product?.id) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      Alert.alert("Login required", "Please log in to leave a review.");
+      router.push("/auth/login");
+      return;
+    }
+    if (!reviewRating) {
+      Alert.alert("Rating required", "Select a star rating first.");
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      const productId = String(product.id);
+      const productRef = doc(db, "products", productId);
+      const reviewRef = doc(db, "products", productId, "reviews", currentUser.uid);
+      const userName =
+        currentUser.displayName || currentUser.email || "Anonymous";
+      const trimmedText = reviewText.trim();
+
+      const productSnap = await getDoc(productRef);
+      if (!productSnap.exists()) {
+        throw new Error("Product no longer exists.");
+      }
+      const reviewSnap = await getDoc(reviewRef);
+      const prevRating = reviewSnap.exists()
+        ? Number((reviewSnap.data() as any)?.rating || 0)
+        : 0;
+      const count = Number((productSnap.data() as any)?.ratingCount || 0);
+      const avg = Number((productSnap.data() as any)?.ratingAvg || 0);
+      let newCount = count;
+      let total = avg * count;
+      if (!reviewSnap.exists()) {
+        newCount = count + 1;
+        total += reviewRating;
+      } else {
+        total = total - prevRating + reviewRating;
+      }
+      const newAvg = newCount ? total / newCount : reviewRating;
+
+      await setDoc(
+        reviewRef,
+        {
+          rating: reviewRating,
+          text: trimmedText,
+          userId: currentUser.uid,
+          userName,
+          createdAt: reviewSnap.exists()
+            ? (reviewSnap.data() as any)?.createdAt || serverTimestamp()
+            : serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      await updateDoc(productRef, {
+        ratingAvg: newAvg,
+        ratingCount: newCount,
+        ratingUpdatedAt: serverTimestamp(),
+      });
+      setMyReviewLoaded(true);
+      setProduct((prev) =>
+        prev ? { ...prev, ratingAvg: newAvg, ratingCount: newCount } : prev
+      );
+      Alert.alert("Review saved", "Thanks for your feedback.");
+    } catch (e: any) {
+      Alert.alert("Review failed", e?.message || "Please try again.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const renderStars = (value: number, onSelect?: (v: number) => void) => {
+    return (
+      <View style={styles.starRow}>
+        {Array.from({ length: 5 }).map((_, idx) => {
+          const starValue = idx + 1;
+          const filled = starValue <= value;
+          return (
+            <TouchableOpacity
+              key={starValue}
+              onPress={onSelect ? () => onSelect(starValue) : undefined}
+              activeOpacity={0.7}
+              disabled={!onSelect}
+            >
+              <FontAwesome5
+                name="star"
+                size={16}
+                color={filled ? "#F6B22F" : colors.border}
+                style={styles.starIcon}
+              />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -340,6 +498,16 @@ export default function ProductPage() {
               </View>
             </View>
           </View>
+          <View style={styles.ratingSummary}>
+            {renderStars(
+              typeof product.ratingAvg === "number" ? product.ratingAvg : 0
+            )}
+            <Text style={styles.ratingSummaryText}>
+              {product.ratingCount
+                ? `${Number(product.ratingAvg || 0).toFixed(1)} (${product.ratingCount} reviews)`
+                : "No reviews yet"}
+            </Text>
+          </View>
           {!isRentProduct ? (
             <View style={styles.pricePillRow}>
               <View style={styles.pricePill}>
@@ -499,6 +667,55 @@ export default function ProductPage() {
               )}
             </ScrollView>
           </View>
+        </View>
+
+        <View style={styles.reviewSection}>
+          <Text style={styles.reviewTitle}>Reviews</Text>
+          <View style={styles.reviewCard}>
+            <Text style={styles.reviewPrompt}>Your rating</Text>
+            {renderStars(reviewRating, setReviewRating)}
+            <TextInput
+              placeholder="Share your experience (optional)"
+              placeholderTextColor={colors.muted}
+              value={reviewText}
+              onChangeText={setReviewText}
+              multiline
+              style={styles.reviewInput}
+            />
+            <TouchableOpacity
+              style={[
+                styles.reviewButton,
+                submittingReview && styles.buttonDisabled,
+              ]}
+              onPress={handleSubmitReview}
+              disabled={submittingReview}
+            >
+              <Text style={styles.reviewButtonText}>
+                {submittingReview ? "Submitting..." : "Submit review"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {reviews.length === 0 ? (
+            <Text style={styles.reviewEmpty}>No reviews yet.</Text>
+          ) : (
+            reviews.map((rev) => (
+              <View key={rev.id} style={styles.reviewItem}>
+                <View style={styles.reviewHeader}>
+                  <Text style={styles.reviewName}>{rev.userName}</Text>
+                  <Text style={styles.reviewDate}>
+                    {rev.createdAt
+                      ? rev.createdAt.toLocaleDateString()
+                      : ""}
+                  </Text>
+                </View>
+                {renderStars(rev.rating)}
+                {rev.text ? (
+                  <Text style={styles.reviewText}>{rev.text}</Text>
+                ) : null}
+              </View>
+            ))
+          )}
         </View>
         <View style={styles.spacerBottom} />
       </ScrollView>
@@ -1089,4 +1306,109 @@ const createStyles = (colors: any, isDark: boolean) =>
       borderColor: colors.border,
     },
     shareText: { color: colors.primary, fontWeight: "700" },
+    ratingSummary: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 12,
+    },
+    ratingSummaryText: {
+      fontSize: 12,
+      color: colors.muted,
+      fontWeight: "600",
+    },
+    starRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    starIcon: {
+      marginRight: 2,
+    },
+    reviewSection: {
+      marginHorizontal: 16,
+      marginTop: 16,
+      padding: 16,
+      borderRadius: 16,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: isDark ? "#000" : colors.primary,
+      shadowOpacity: isDark ? 0.2 : 0.05,
+      shadowRadius: 10,
+      elevation: 2,
+    },
+    reviewTitle: {
+      fontSize: 16,
+      fontWeight: "800",
+      color: colors.primary,
+      marginBottom: 12,
+    },
+    reviewCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 12,
+      marginBottom: 12,
+    },
+    reviewPrompt: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: colors.text,
+      marginBottom: 8,
+    },
+    reviewInput: {
+      marginTop: 10,
+      minHeight: 80,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      color: colors.text,
+      backgroundColor: colors.background,
+      textAlignVertical: "top",
+    },
+    reviewButton: {
+      marginTop: 12,
+      backgroundColor: colors.primary,
+      paddingVertical: 12,
+      borderRadius: 10,
+      alignItems: "center",
+    },
+    reviewButtonText: {
+      color: "#fff",
+      fontWeight: "800",
+    },
+    reviewEmpty: {
+      color: colors.muted,
+      fontSize: 13,
+    },
+    reviewItem: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 12,
+      marginTop: 12,
+      gap: 6,
+    },
+    reviewHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    reviewName: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: colors.text,
+    },
+    reviewDate: {
+      fontSize: 11,
+      color: colors.muted,
+    },
+    reviewText: {
+      fontSize: 13,
+      color: colors.text,
+      lineHeight: 18,
+    },
   });

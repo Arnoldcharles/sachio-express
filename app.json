@@ -12,11 +12,14 @@
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Use Face ID to sign in faster."
+        "NSFaceIDUsageDescription": "Use Face ID to sign in faster.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "associatedDomains": [
+        "applinks:sachio-mobile-web.vercel.app",
         "applinks:sachio-mobile-web.vercel.app"
-      ]
+      ],
+      "bundleIdentifier": "com.sachio.mobile.toilets"
     },
     "android": {
       "intentFilters": [

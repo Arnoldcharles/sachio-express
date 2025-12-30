@@ -623,6 +623,14 @@ export default function HomeScreen() {
     const anim = getItemAnim(String(item.id));
     const image = (item.images && item.images[0]) || item.imageUrl;
     const outOfStock = item.inStock === false;
+    const ratingAvg =
+      typeof item.ratingAvg === "number" && !isNaN(item.ratingAvg)
+        ? item.ratingAvg
+        : 0;
+    const ratingCount =
+      typeof item.ratingCount === "number" && item.ratingCount > 0
+        ? item.ratingCount
+        : 0;
     const hidePrice =
       rentish(selectedCategory) ||
       rentish(item.category) ||
@@ -672,14 +680,19 @@ export default function HomeScreen() {
                 <View style={styles.newBadge}>
                   <Text style={styles.newBadgeText}>NEW</Text>
                 </View>
-              ) : (
-                <View style={{ width: 42 }} />
-              )}
-              <View style={styles.ratingPill}>
-                <FontAwesome5 name="star" size={10} color="#F6B22F" />
-                <Text style={styles.ratingText}>4.8</Text>
-              </View>
+            ) : (
+              <View style={{ width: 42 }} />
+            )}
+            <View style={styles.ratingPill}>
+              <FontAwesome5 name="star" size={10} color="#F6B22F" />
+              <Text style={styles.ratingText}>
+                {ratingCount ? ratingAvg.toFixed(1) : "New"}
+              </Text>
+              {ratingCount ? (
+                <Text style={styles.ratingCount}>({ratingCount})</Text>
+              ) : null}
             </View>
+          </View>
             <View style={styles.iconPills}>
               {outOfStock ? (
                 <View style={[styles.gridCart, styles.gridCartDisabled]}>
@@ -840,7 +853,7 @@ export default function HomeScreen() {
             },
           ]}
         >
-          <Text style={styles.sectionTitle}>Categories</Text>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -1389,6 +1402,7 @@ const createStyles = (colors: { [key: string]: string }, isDark: boolean) =>
     borderRadius: 10,
   },
   ratingText: { fontSize: 11, fontWeight: "700", color: colors.primary },
+  ratingCount: { fontSize: 10, fontWeight: "600", color: colors.muted },
   iconPills: {
     position: "absolute",
     bottom: 8,
