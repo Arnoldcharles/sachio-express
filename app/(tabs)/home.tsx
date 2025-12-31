@@ -300,6 +300,14 @@ export default function HomeScreen() {
     );
   }, [galleryItems, search]);
 
+  useEffect(() => {
+    if (!showGallery) return;
+    galleryFiltered.forEach((item) => {
+      const anim = getItemAnim(`gallery-${item.id}`);
+      anim.setValue(1);
+    });
+  }, [galleryFiltered, showGallery, getItemAnim]);
+
   const canSubmitRent = useMemo(() => {
     return (
       !!rentName &&
