@@ -34,12 +34,7 @@ import {
   query,
   serverTimestamp,
 } from "firebase/firestore";
-import {
-  getProducts,
-  getCategories,
-  Product,
-  Category,
-} from "../../lib/products";
+import { getProducts, Product } from "../../lib/products";
 import { auth, db } from "../../lib/firebase";
 import { useTheme } from "../../lib/theme";
 
@@ -177,7 +172,6 @@ export default function HomeScreen() {
   );
   const [products, setProducts] = useState<Product[]>([]);
   const [filtered, setFiltered] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [search, setSearch] = useState("");
@@ -297,7 +291,7 @@ export default function HomeScreen() {
     return filtered.slice(0, 6);
   }, [filtered, selectedCategory, search]);
 
-  const showRentForm = rentish(selectedCategory);
+  const showRentForm = selectedCategory === "Rent";
   const galleryFiltered = useMemo(() => {
     if (!search.trim()) return galleryItems;
     const q = search.toLowerCase();
@@ -339,9 +333,8 @@ export default function HomeScreen() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [items, cats] = await Promise.all([getProducts(), getCategories()]);
+      const [items] = await Promise.all([getProducts()]);
       setProducts(items);
-      setCategories(cats);
     } catch (e) {
       // keep silent fail with empty state
     } finally {
@@ -368,7 +361,7 @@ export default function HomeScreen() {
         return {
           id: docSnap.id,
           title: data?.title ?? "Gallery item",
-          imageUrl: data?.imageUrl ?? "",
+          imageUrl: data?.imageUrl ?? data?.imageURL ?? data?.image ?? "",
           createdAt: data?.createdAt?.toDate
             ? data.createdAt.toDate()
             : null,
@@ -805,6 +798,7 @@ export default function HomeScreen() {
 
   const renderGalleryCard = ({ item }: { item: GalleryItem }) => {
     const anim = getItemAnim(`gallery-${item.id}`);
+    const image = (item.imageUrl || "").trim();
     return (
       <Animated.View
         style={{
@@ -834,9 +828,9 @@ export default function HomeScreen() {
           }}
         >
           <View style={styles.gridImageWrap}>
-            {item.imageUrl ? (
+            {image ? (
               <Image
-                source={{ uri: item.imageUrl }}
+                source={{ uri: image }}
                 style={styles.gridImage}
                 resizeMode="cover"
               />
@@ -1005,20 +999,17 @@ export default function HomeScreen() {
               styles={styles}
             />
             <CategoryChip
+              label="Rent"
+              active={selectedCategory === "Rent"}
+              onPress={() => setSelectedCategory("Rent")}
+              styles={styles}
+            />
+            <CategoryChip
               label="Gallery"
               active={selectedCategory === "Gallery"}
               onPress={() => setSelectedCategory("Gallery")}
               styles={styles}
             />
-            {categories.map((cat) => (
-              <CategoryChip
-                key={cat.id}
-                label={cat.name}
-                active={selectedCategory === cat.name}
-                onPress={() => setSelectedCategory(cat.name)}
-                styles={styles}
-              />
-            ))}
           </ScrollView>
         </Animated.View>
 
@@ -1386,7 +1377,7 @@ export default function HomeScreen() {
                     key={item.id}
                     style={[styles.gallerySlide, { width: modalWidth }]}
                   >
-                    {renderPinchImage(item.imageUrl)}
+                    {renderPinchImage((item.imageUrl || "").trim())}
                     {item.title ? (
                       <Text style={styles.galleryModalTitle}>
                         {item.title}

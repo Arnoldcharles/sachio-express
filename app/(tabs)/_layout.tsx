@@ -5,8 +5,9 @@ import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useTheme } from '../../lib/theme';
+import { registerForPushNotificationsAsync } from '../../lib/notifications';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -61,6 +62,31 @@ export default function TabLayout() {
     );
     return () => unsub();
   }, [currentUser, router]);
+
+  useEffect(() => {
+    let mounted = true;
+    const registerPush = async () => {
+      if (!currentUser) return;
+      try {
+        const token = await registerForPushNotificationsAsync();
+        if (!token || !mounted) return;
+        await setDoc(
+          doc(db, 'users', currentUser.uid),
+          {
+            pushToken: token,
+            pushTokenUpdatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      } catch {
+        // ignore push registration errors
+      }
+    };
+    registerPush();
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser]);
 
   useEffect(() => {
     if (!blockAlertVisible) return;
